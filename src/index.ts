@@ -1,3 +1,5 @@
-export const add = (a: number, b: number): number => {
-	return a + b;
-  };
+export { ClientObjects } from './ClientObjects';
+export { ServerObjects } from './ServerObjects';
+
+export * from './ClientObjects.types';
+export * from './ServerObjects.types';
