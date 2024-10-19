@@ -1,13 +1,10 @@
 
-
-// *** SERVER ***
-
-
 export interface ServerObject {
 	idObj: string
 	value: any[]
 	listeners: Listener[]
 	actions: Action[]
+	version: number
 }
 
 export interface Listener {

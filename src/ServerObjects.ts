@@ -108,7 +108,8 @@ export class ServerObjects {
 				idObj,
 				value: this.apply(),
 				listeners: [{ client, lastVersion: 0 }],
-				actions: []
+				actions: [],
+				version: 0,
 			}
 			this.objects[idObj] = data
 
@@ -134,5 +135,6 @@ export class ServerObjects {
 		// se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
 		objShared.actions.push(act)
 		objShared.value = this.apply(objShared.value, act)
+		objShared.version++
 	}
 }

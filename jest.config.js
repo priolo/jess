@@ -3,9 +3,7 @@ export default {
   testEnvironment: 'node',
   testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
   extensionsToTreatAsEsm: ['.ts'],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', { useESM: true }],
   },
 };
