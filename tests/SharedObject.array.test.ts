@@ -62,11 +62,11 @@ test("send actions", async () => {
 
 
 	await myClient.init("pippo", true)
-	myClient.command("pippo", "add")
-	myClient.command("pippo", "add")
+	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
+	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 	myClient.update()
-	myClient.command("pippo", "remove")
-	myClient.command("pippo", "add")
+	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1})
+	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 
 
 	// simulo la disconnessione
@@ -82,14 +82,13 @@ test("send actions", async () => {
 	await delay(200)
 	myServer.update()
 
-	expect(myServer.objects["pippo"].value).toEqual([
-		"add row version 1",
-		"add row version 4",
-	])
-	expect(myClient.objects["pippo"].value).toEqual([
-		"add row version 1",
-		"add row version 4",
-	])
+	const expected = [
+		"first row",
+		"third row",
+	]
+
+	expect(myServer.objects["pippo"].value).toEqual(expected)
+	expect(myClient.objects["pippo"].value).toEqual(expected)
 }, 100000)
 
 

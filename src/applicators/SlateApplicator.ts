@@ -1,9 +1,9 @@
 import { createEditor, Transforms, withoutNormalizing } from "slate";
-import { Action } from "../ServerObjects.types";
+import { ApplyActionFunction } from "../ClientObjects.types";
 
 
 
-export function ApplyAction(data?: any[], action?: Action): any[] {
+export const ApplyAction: ApplyActionFunction = (data, action) => {
 	const editor = createEditor();
 	if (!data || data.length === 0) data = [{ children: [{ text: '' }] }];
 	editor.children = data;

@@ -8,11 +8,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true, // Aggiungi questa linea
-    "declarationMap": true, // Opzionale, per generare mappe di dichiarazione
+    "declaration": true, 
+    "declarationMap": true,
     "strictNullChecks": false,
     "noImplicitAny": false
   },
-  "include": ["src", "tests/SharedObject.slate.test.ts", "tests/SharedObject.array.test.ts"],
+  "include": ["src"],
   "exclude": ["node_modules", "**/*.test.ts"]
 }

@@ -1,6 +1,10 @@
 import { ApplyActionFunction, ClientInitMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types"
 import { Action, Listener, ServerInitMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types"
+import { truncate } from "./utils"
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 export class ServerObjects {
@@ -8,16 +12,16 @@ export class ServerObjects {
 	apply: ApplyActionFunction = null
 	onSend: (client: any, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
 	objects: { [idObj: string]: ServerObject } = {}
+	bufferMin: number = 1000
 
 	/** invia a tutti i client le azioni mancanti in maniera da aggiornarli */
 	update() {
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
-			const lastVersion = object.actions[object.actions.length - 1]?.version ?? 0
 			for ( let listener of object.listeners ) {
 
 				/** il client è gi' aggiornato all'ultima versione */
-				if (listener.lastVersion == -1 || listener.lastVersion == lastVersion) continue
+				if ( listener.lastVersion == object.version) continue
 
 				/** tutti gli actions da inviare al listener */
 				const actions = object.actions.filter(action => action.version > listener.lastVersion)
@@ -26,17 +30,20 @@ export class ServerObjects {
 					idObj: object.idObj,
 					actions,
 				}
-				this.sendToListener(msg, listener, lastVersion)
+				// invio le azioni al listener
+				this.sendToListener(msg, listener, object.version)
 			}
 			this.gc(object)	
 		}
 	}
 	private async sendToListener(msg: ServerUpdateMessage, listener: Listener, lastVersion: number) {
+		// [II] mmm in alcuni casi potrebbe fallire sto metodo
 		let oldVersion = listener.lastVersion
 		try {
-			listener.lastVersion = -1
-			await this?.onSend(listener.client, msg)
+			//listener.lastVersion = -1
 			listener.lastVersion = lastVersion
+			await this?.onSend(listener.client, msg)
+			//listener.lastVersion = lastVersion
 		} catch (error) {
 			console.error(error)
 			listener.lastVersion = oldVersion
@@ -44,12 +51,12 @@ export class ServerObjects {
 	}
 	private gc(object:ServerObject) {
 		const minVersion = object.listeners.reduce((min, l) => Math.min(min, l.lastVersion), Infinity)
-		if ( minVersion == -1 ) return
-		object.actions = object.actions.filter(a => a.version > minVersion)
+		object.actions = truncate(object.actions, minVersion, this.bufferMin)
 	}
 
 	/** disconnette un client */
 	disconnect(client: any) {
+		console.log( "disconnect", __dirname )
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
 			const index = object.listeners.findIndex(l => l.client == client)
@@ -101,40 +108,40 @@ export class ServerObjects {
 
 	/** recupera/crea un OBJ (assegno il listener "client") */
 	private getObject(idObj: string, client: any): ServerObject {
-		let data = this.objects[idObj]
+		let object = this.objects[idObj]
 
-		if (!data) {
-			data = {
+		if (!object) {
+			object = {
 				idObj,
 				value: this.apply(),
 				listeners: [{ client, lastVersion: 0 }],
 				actions: [],
 				version: 0,
 			}
-			this.objects[idObj] = data
+			this.objects[idObj] = object
 
-		} else if (!data.listeners.some(l => l.client == client)) {
-			data.listeners.push({
+		} else if (!object.listeners.some(l => l.client == client)) {
+			object.listeners.push({
 				client,
-				lastVersion: data.actions[data.actions.length - 1]?.version ?? 0
+				lastVersion: object.version
 			})
 		}
 
-		return data
+		return object
 	}
 
 	/** aggiorno l'OBJ con un command (generico)*/
 	private updateFromCommand(idObj: string, command: any, atVersion: number) {
-		const objShared = this.objects[idObj]
-		if (!objShared) return
+		const object = this.objects[idObj]
+		if (!object) return
+		object.version++
 		const act: Action = {
 			command,
 			atVersion,
-			version: objShared.actions.length + 1
+			version: object.version,
 		}
-		// se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
-		objShared.actions.push(act)
-		objShared.value = this.apply(objShared.value, act)
-		objShared.version++
+		// [II] OTTIMIZZAZIONE: se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
+		object.actions.push(act)
+		object.value = this.apply(object.value, act)
 	}
 }

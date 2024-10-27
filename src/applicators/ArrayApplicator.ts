@@ -1,11 +1,12 @@
 import { ApplyActionFunction } from "../ClientObjects.types";
+import { Action } from "../ServerObjects.types";
 
 
 
 /**
  * Applica un'azione ad un array
  */
-export const ApplyAction: ApplyActionFunction = (data: any[], action): any[] => {
+export const ApplyAction: ApplyActionFunction = (data, action) => {
 	if (!data) data = []
 	if (!action) return data
 	const command = action.command

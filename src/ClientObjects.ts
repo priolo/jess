@@ -32,6 +32,10 @@ export class ClientObjects {
 
 	/** chiede al server di restituire/creare un certo oggetto */
 	init(idObj: string, send?: boolean): Promise<void> {
+		if ( this.objects[idObj] ) {
+			this.reset()
+			return Promise.resolve()
+		}
 		const message: ClientInitMessage = {
 			type: "c:init",
 			payload: { idObj }
@@ -58,7 +62,7 @@ export class ClientObjects {
 		this.buffer.push(message)
 	}
 
-	/** chiede al server tutte le informazioni parziali che aveva il client prima di disconnettersi */
+	/** dice al SERVER a che versione sono i suoi OBJECT */
 	reset() {
 		const message: ClientResetMessage = {
 			type: "c:reset",

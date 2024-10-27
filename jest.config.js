@@ -4,6 +4,8 @@ export default {
   testMatch: ['**/?(*.)+(spec|test).[tj]s?(x)'],
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { useESM: true }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { 
+      useESM: true,
+    }],
   },
 };

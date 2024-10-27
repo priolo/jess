@@ -90,12 +90,9 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	await client1.init("my-object", true)
 
 	client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
-	await delay(200)
 	await client2.init("my-object", true)
 	client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row from 1" })
-	await delay(200)
 	client2.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 2" })
-	await delay(200)
 	client2.update()
 	client1.update()
 	await delay(200)
@@ -104,9 +101,9 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	await delay(200)
 
 	const expected = [
+		"first row from 2",
 		"first row from 1",
 		"second row from 1",
-		"first row from 2",
 	]
 	expect(server.objects["my-object"].value).toEqual(expected)
 	expect(client1.objects["my-object"].value).toEqual(expected)
@@ -162,45 +159,52 @@ test("simula una disconnessione di un CLIENT", async () => {
 
 test("verifica funzionamento del GC sul SERVER", async () => {
 	const [server] = WSServer()
+	// setto il minimo di action da conservare a 0
+	// in questa maniera elimino subito tutte le ACTION che non sono piu' utili
+	server.bufferMin = 0
 	const [client1] = await WSClient()
 	const [client2] = await WSClient()
 
-	// 1 chiede una risorsa
+	// CLIENT-1 chiede la risorsa "my-object"
 	await client1.init("my-object", true)
-	// client 1 invia un COMMAND 
+	// CLIENT-1 invia un COMMAND e il SERVER va alla versione 1
 	client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "client 1 row 1" })
 	client1.update()
 	await delay(200)
 
-	// il server riceve e aggiorna CLIENT 1 alla versione 1 (primo COMMAND)
-	// tutti i listener di "my-object" sono all'ultima versione (solo CLIENT1) quindi elimina le ACTIONS
-	// il GC non avviene immediatamente bisogna aspettare almeno un paio di update del SERVER
+	// il server aggiorna CLIENT-1 alla versione 1 (primo COMMAND)
+	// fatto questo controlla che tutti i listener di "my-object" sono all'ultima versione 
+	// quindi elimina le ACTIONS che non sono piu' utili (in questo caso tutte perche' c'e' solo CLIENT-1)
 	server.update()
 	await delay(200)
-	server.update()
 	expect(server.objects["my-object"].actions.length).toBe(0)
+	expect(server.objects["my-object"].version).toBe(1)
 
-	// 1 invia un po' di modifiche (il server è alla versione 6)
+	// CLIENT-1 invia 5 COMMANDs (il server va alla versione 6)
 	Array.from({ length: 5 }, (_, i) => `client 1 row ${i}`)
 		.forEach(row => client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: row }))
 	client1.update()
+	await delay(200)
+	// ci dovrebbero essere 5 action memorizzate nel server
+	expect(server.objects["my-object"].actions.length).toBe(5)
+	expect(server.objects["my-object"].version).toBe(6)
 
-	expect(server.objects["my-object"].actions.length).toBe(0)
 
-	// 2 chiede la stessa risorsa e va alla versione 6. Mentre client 1 rimane alla versione 1
+	// CLIENT-2 chiede la stessa risorsa e va alla versione 6. 
+	// Mentre CLIENT-1 rimane alla versione 1 perchè il SERVER non ha ancora smistato aggiornamenti
 	await client2.init("my-object", true)
-	// 2 invia una modifica e il server che va alla versione 7
+	// CLIENT-2 invia una modifica e il SERVER va alla versione 7
 	client2.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "client 2 row 1" })
 	client2.update()
-
+	await delay(200)
 	// il numero di action memorizzate nel server
-	expect(server.objects["my-object"].actions.length).toBe(7)
+	expect(server.objects["my-object"].actions.length).toBe(6)
+	expect(server.objects["my-object"].version).toBe(7)
 
-	// il server aggiorna sia 1 che 2 ala versione 7
+	// il SERVER aggiorna sia CLIENT-1 che CLIENT-2 alla versione 7 azzera le ACTIONs
 	server.update()
-
-
-
-
+	await delay(200)
+	expect(server.objects["my-object"].actions.length).toBe(0)
+	expect(server.objects["my-object"].version).toBe(7)
 
 }, 100000)
