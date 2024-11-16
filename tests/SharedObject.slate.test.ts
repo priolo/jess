@@ -58,5 +58,5 @@ test("send actions", async () => {
 	expect(myClient.objects["pippo"].value).toEqual([
 		{ children: [{ text: "plo", }] },
 	])
-}, 100000)
+})
 

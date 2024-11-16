@@ -24,6 +24,7 @@ import { ApplyAction, TYPE_ARRAY_COMMAND } from "../src/applicators/ArrayApplica
  * Crea un server WebSocket
  */
 function WSServer(): [ServerObjects, WebSocketServer] {
+
 	const server = new ServerObjects()
 	server.apply = ApplyAction
 	server.onSend = async (ws: WebSocket, message) => ws.send(JSON.stringify(message))
@@ -39,11 +40,13 @@ function WSServer(): [ServerObjects, WebSocketServer] {
 
 async function WSClient(cli?: ClientObjects): Promise<[ClientObjects, WebSocket]> {
 	const ws = new WebSocket('ws://localhost:8080');
-	const client = cli ?? new ClientObjects()
-	client.onSend = async (message) => ws.send(JSON.stringify(message))
-	client.apply = ApplyAction
 
+	const client = cli ?? new ClientObjects()
+	client.apply = ApplyAction
+	client.onSend = async (message) => ws.send(JSON.stringify(message))
 	ws.on('message', (data: string) => client.receive(data));
+
+	// aspetta che la connessione sia aperta
 	return new Promise(resolve => ws.on('open', () => resolve([client, ws])))
 }
 
@@ -55,21 +58,25 @@ afterAll(async () => {
 })
 
 test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
-	const [server] = WSServer()
-	const [client] = await WSClient()
+	const [server, wss] = WSServer()
+	const [client, wsc] = await WSClient()
 
 	await client.init("my-object", true)
 	await delay(200)
 
+	// creo il buffer delle modifiche
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
+	// le invio al server (il client )
 	client.update()
 	await delay(200)
 
+	// il server deve aggiornare tutti i client
 	server.update()
 	await delay(200)
+
 
 	expect(server.objects["my-object"].value).toEqual([
 		"first row",
@@ -79,13 +86,15 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 		"first row",
 		"third row",
 	])
-}, 100000)
+	wss.close()
+	wsc.close()
+})
 
 
 test("sincronizza due CLIENT con il SERVER", async () => {
-	const [server] = WSServer()
-	const [client1] = await WSClient()
-	const [client2] = await WSClient()
+	const [server, wss] = WSServer()
+	const [client1, wsc1] = await WSClient()
+	const [client2, wsc2] = await WSClient()
 
 	await client1.init("my-object", true)
 
@@ -100,6 +109,7 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	server.update()
 	await delay(200)
 
+	
 	const expected = [
 		"first row from 2",
 		"first row from 1",
@@ -108,14 +118,16 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	expect(server.objects["my-object"].value).toEqual(expected)
 	expect(client1.objects["my-object"].value).toEqual(expected)
 	expect(client2.objects["my-object"].value).toEqual(expected)
-
-}, 100000)
+	wss.close()
+	wsc1.close()
+	wsc2.close()
+})
 
 
 test("simula una disconnessione di un CLIENT", async () => {
-	const [server] = WSServer()
+	const [server, wss] = WSServer()
 	const [client1, wsc1] = await WSClient()
-	const [client2] = await WSClient()
+	const [client2, wsc2] = await WSClient()
 
 	await client1.init("my-object", true)
 	await client2.init("my-object", true)
@@ -145,6 +157,7 @@ test("simula una disconnessione di un CLIENT", async () => {
 	server.update()
 	await delay(200)
 
+	
 	const expected = [
 		"first row from 1",
 		"first row from 2",
@@ -153,17 +166,43 @@ test("simula una disconnessione di un CLIENT", async () => {
 	expect(server.objects["my-object"].value).toEqual(expected)
 	expect(client1.objects["my-object"].value).toEqual(expected)
 	expect(client2.objects["my-object"].value).toEqual(expected)
+	wss.close()
+	wsc1.close()
+	wsc2.close()
+})
 
-}, 100000)
+test("il CIENT inizia offline", async () => {
+	const [server, wss] = WSServer()
+	const client = new ClientObjects()
+
+	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
+	client.update()
+	await delay(200)
+
+	// il client si connette
+	const [_, wsc] = await WSClient(client)
+	client.reset()
+	client.update()
+	await delay(200)
+	
+	const expected = [
+		"first row from 1",
+	]
+	expect(server.objects["my-object"].value).toEqual(expected)
+	expect(client.objects["my-object"].value).toEqual(expected)
+
+	wss.close()
+	wsc.close()
+})
 
 
 test("verifica funzionamento del GC sul SERVER", async () => {
-	const [server] = WSServer()
+	const [server, wss] = WSServer()
 	// setto il minimo di action da conservare a 0
 	// in questa maniera elimino subito tutte le ACTION che non sono piu' utili
 	server.bufferMin = 0
-	const [client1] = await WSClient()
-	const [client2] = await WSClient()
+	const [client1, wsc1] = await WSClient()
+	const [client2, wsc2] = await WSClient()
 
 	// CLIENT-1 chiede la risorsa "my-object"
 	await client1.init("my-object", true)
@@ -207,4 +246,7 @@ test("verifica funzionamento del GC sul SERVER", async () => {
 	expect(server.objects["my-object"].actions.length).toBe(0)
 	expect(server.objects["my-object"].version).toBe(7)
 
-}, 100000)
+	wss.close()
+	wsc1.close()
+	wsc2.close()
+})

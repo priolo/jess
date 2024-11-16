@@ -1,26 +1,39 @@
-import { ApplyActionFunction, ClientInitMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types"
+import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types"
 import { Action, Listener, ServerInitMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types"
 import { truncate } from "./utils"
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// import path from 'path';
+// import { fileURLToPath } from 'url';
+// const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 export class ServerObjects {
 
+	/**
+	 * modifica un OBJECT tramite un ACTION
+	 */
 	apply: ApplyActionFunction = null
+	/** 
+	 * invia al client un messaggio 
+	 * emette un errore se il messaggio non è stato inviato correttamente
+	 * */
 	onSend: (client: any, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
+
+	/**libreria di BJECTs */
 	objects: { [idObj: string]: ServerObject } = {}
+	/** buffer minimo di azioni da mantenere */
 	bufferMin: number = 1000
 
-	/** invia a tutti i client le azioni mancanti in maniera da aggiornarli */
+	/** 
+	 * invia a tutti i CLIENT le ACTIONs mancanti in maniera da sincronizzarli
+	 * */
 	update() {
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
+
 			for ( let listener of object.listeners ) {
 
-				/** il client è gi' aggiornato all'ultima versione */
+				/** il client è già aggiornato all'ultima versione */
 				if ( listener.lastVersion == object.version) continue
 
 				/** tutti gli actions da inviare al listener */
@@ -36,6 +49,10 @@ export class ServerObjects {
 			this.gc(object)	
 		}
 	}
+
+	/**
+	 * effettivamente invia il messaggio al listener e aggiorna la sua ultima versione
+	 */
 	private async sendToListener(msg: ServerUpdateMessage, listener: Listener, lastVersion: number) {
 		// [II] mmm in alcuni casi potrebbe fallire sto metodo
 		let oldVersion = listener.lastVersion
@@ -49,14 +66,22 @@ export class ServerObjects {
 			listener.lastVersion = oldVersion
 		}
 	}
+
+	/**
+	 * garbage collection
+	 * elimina azioni che sono sicuramente inviate a tutti i listeners
+	 * @param object 
+	 */
 	private gc(object:ServerObject) {
 		const minVersion = object.listeners.reduce((min, l) => Math.min(min, l.lastVersion), Infinity)
 		object.actions = truncate(object.actions, minVersion, this.bufferMin)
 	}
 
-	/** disconnette un client */
+	/** 
+	 * disconnette un client 
+	 **/
 	disconnect(client: any) {
-		console.log( "disconnect", __dirname )
+		//console.log( "disconnect", __dirname )
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
 			const index = object.listeners.findIndex(l => l.client == client)
@@ -69,12 +94,17 @@ export class ServerObjects {
 
 
 
-	/** riceve un messaggio dal client */
-	receive(messageStr: string, client: any) {
-		const message = JSON.parse(messageStr)
-
+	/** 
+	 * riceve un messaggio dal client 
+	 **/
+	receive(messagesStr: string, client: any) {
+		const messages = JSON.parse(messagesStr) as ClientMessage[]
+		for (const message of messages) this.executeMessage(message, client)
+	}
+	private executeMessage(message: ClientMessage, client: any) {
 		switch (message.type) {
 
+			// il CLIENT chiede di ricevere l'inizializzazione di un OBJECT
 			case "c:init": {
 				const msgInit = message as ClientInitMessage
 				const object = this.getObject(msgInit.payload.idObj, client)
@@ -89,12 +119,14 @@ export class ServerObjects {
 				break
 			}
 
+			// il CLIENT invia un comando per modificare un OBJECT
 			case "c:update": {
 				const msg = message as ClientUpdateMessage
 				this.updateFromCommand(msg.payload.idObj, msg.payload.command, msg.payload.atVersion)
 				break
 			}
 
+			// il CLIENT invia la versione a cui è arrivato su tutti gli OBJECTs
 			case "c:reset": {
 				const msg = message as ClientResetMessage
 				msg.payload.forEach(obj => {

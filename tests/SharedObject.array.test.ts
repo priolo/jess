@@ -10,8 +10,11 @@ import { ApplyAction, TYPE_ARRAY_COMMAND } from "../src/applicators/ArrayApplica
 function buildClientAndServer() {
 	const server = new ServerObjects()
 	const client = new ClientObjects()
+	/** quando devo inviare al server scrivo direttamente sul "receiver" */
 	server.onSend = async (client, message) => client.receive(JSON.stringify(message))
-	client.onSend = async (message) => server.receive(JSON.stringify(message), client)
+	/** quando devo inviare al client scrivo direttamente sul "receiver" */
+	client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
+	/** uso un "apply" su array */
 	server.apply = ApplyAction
 	client.apply = ApplyAction
 	return { server, client }
@@ -48,7 +51,7 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 		"first row",
 		"third row",
 	])
-}, 100000)
+})
 
 
 
@@ -89,7 +92,7 @@ test("send actions", async () => {
 
 	expect(myServer.objects["pippo"].value).toEqual(expected)
 	expect(myClient.objects["pippo"].value).toEqual(expected)
-}, 100000)
+})
 
 
 test("send actions 2 client", async () => {
@@ -146,7 +149,7 @@ test("send actions 2 client", async () => {
 		"add row version 1",
 		"add row version 2",
 	])
-}, 100000)
+})
 
 test("init and fast update sync", async () => {
 	const myServer = new ServerObjects()
