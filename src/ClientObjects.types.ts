@@ -3,9 +3,15 @@
 
 import { Action } from "./ServerObjects.types"
 
+/**
+ * il proxy locale dell'oggetto remoto idObj
+ */
 export interface ClientObject {
+	/** identificativo */
 	idObj: string
+	/** valore locale */
 	value: any[]
+	/** ultima versione di aggiornamento */
 	version: number
 }
 

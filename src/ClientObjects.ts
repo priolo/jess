@@ -18,7 +18,7 @@ export class ClientObjects {
 	onSend: (messages: ClientMessage[]) => Promise<void> = null
 
 	/**libreria di BJECTs */
-	objects: { [idObj: string]: ClientObject } = {}
+	private objects: { [idObj: string]: ClientObject } = {}
 	private observers: { [idObj: string]: ((data: any) => void)[] } = {}
 	private initResponse: { resolve: () => void, reject: (m: any) => void } | null = null
 	private buffer: ClientMessage[] = []
@@ -48,29 +48,33 @@ export class ClientObjects {
 
 	//#endregion
 
+	
+
 	/** 
-	 * chiede al server di restituire/creare un oggetto
-	 * @param idObj id dell'oggetto da inizializzare
-	 * @param send se true invia subito la richiesta al server e aspetta la risposta
+	 * chiede al server di sincronizzare un oggetto
+	 * tipicamente quando l'oggetto è creato oppure quando si chiude la connessione di comunicazione
+	 * @param idObj id dell'oggetto da sincronizzare
+	 * @param update se true invia subito la richiesta al server e aspetta la risposta
 	 **/
 	async init(idObj: string, send?: boolean): Promise<void> {
-		if (this.objects[idObj]) {
-			try {
-				await this.reset()
-			} catch (error) {
-				return Promise.reject(error)
-			}
-			return Promise.resolve()
-		}
+		// if (this.objects[idObj]) {
+		// 	try {
+		// 		await this.reset()
+		// 	} catch (error) {
+		// 		return Promise.reject(error)
+		// 	}
+		// 	return Promise.resolve()
+		// }
 		const message: ClientInitMessage = {
 			type: "c:init",
 			payload: { idObj }
 		}
-
 		this.buffer.push(message)
 		if (!send) return
+		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 		await this.update()
-		return new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
+		return promise
+		//return new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 	}
 
 	/** 
@@ -79,8 +83,7 @@ export class ClientObjects {
 	 * @param command comando da eseguire
 	 **/
 	command(idObj: string, command: any) {
-		const object = this.objects[idObj]
-		if (!object) throw new Error("Object not found")
+		const object = this.getObject(idObj)
 		const message: ClientUpdateMessage = {
 			type: "c:update",
 			payload: {
@@ -93,7 +96,7 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * sincronizza la versione degli BJECT con il server
+	 * dico al server gli OBJECT osservati e a versione raggiunta
 	 **/
 	async reset(): Promise<void> {
 		const message: ClientResetMessage = {
@@ -107,7 +110,7 @@ export class ClientObjects {
 	 * invia al server tutti i command bufferizzati
 	 * */
 	async update(): Promise<void> {
-		if (this.buffer.length == 0) return
+		if (this.buffer.length == 0 || !this.onSend ) return
 		const temp = this.buffer
 		this.buffer = []
 		try {
@@ -128,10 +131,8 @@ export class ClientObjects {
 			case "s:init": {
 				const msgInit = message as ServerInitMessage
 				this.setObject(msgInit.idObj, msgInit.data, msgInit.version)
-				if (this.initResponse) {
-					this.initResponse.resolve()
-					this.initResponse = null
-				}
+				this.initResponse?.resolve()
+				this.initResponse = null
 				break
 			}
 			case "s:update": {
@@ -140,6 +141,17 @@ export class ClientObjects {
 				break
 			}
 		}
+	}
+
+
+
+	/**
+	 * Recupera o crea un OBJECT
+	 */
+	getObject(idObj: string): ClientObject {
+		let object = this.objects[idObj]
+		if (!object) this.objects[idObj] = object = { idObj, value: [], version: 0 }
+		return object
 	}
 
 	/**

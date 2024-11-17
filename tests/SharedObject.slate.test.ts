@@ -1,7 +1,6 @@
 import { ClientObjects } from "../src/ClientObjects"
 import { ServerObjects } from "../src/ServerObjects"
 import { ApplyAction } from "../src/applicators/SlateApplicator"
-import { delay } from "../src/utils"
 
 
 
@@ -24,39 +23,26 @@ test("send actions", async () => {
 		myServer.receive(JSON.stringify(message), myClient)
 	}
 
-	myClient.observe("pippo", (data) => {
-		console.log(data)
-	})
-
-	await myClient.init("pippo")
-
-	await delay(500)
-
-	myClient.command("pippo", {
+	await myClient.init("my-doc")
+	myClient.command("my-doc", {
 		"type": "insert_text",
 		"path": [0, 0], "offset": 0,
 		"text": "pluto"
 	})
-	myClient.command("pippo", {
+	myClient.command("my-doc", {
 		"type": "remove_text",
 		"path": [0, 0], "offset": 2,
 		"text": "ut"
 	})
-
-	await delay(200)
 	myServer.update()
-	await delay(200)
-	myServer.update()
-	await delay(500)
+	myClient.update()
 	myServer.update()
 
-	await delay(1000)
-
-	expect(myServer.objects["pippo"].value).toEqual([
+	const expected = [
 		{ children: [{ text: "plo", }] },
-	])
-	expect(myClient.objects["pippo"].value).toEqual([
-		{ children: [{ text: "plo", }] },
-	])
+	]
+
+	expect(myServer.objects["my-doc"].value).toEqual(expected)
+	expect(myClient.getObject("my-doc").value).toEqual(expected)
 })
 

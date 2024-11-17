@@ -1,5 +1,5 @@
 import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types"
-import { Action, Listener, ServerInitMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types"
+import { Action, Listener, ServerInitMessage, ServerMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types"
 import { truncate } from "./utils"
 
 // import path from 'path';
@@ -30,31 +30,47 @@ export class ServerObjects {
 	update() {
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
-
-			for ( let listener of object.listeners ) {
-
-				/** il client è già aggiornato all'ultima versione */
-				if ( listener.lastVersion == object.version) continue
-
-				/** tutti gli actions da inviare al listener */
-				const actions = object.actions.filter(action => action.version > listener.lastVersion)
-				const msg: ServerUpdateMessage = {
-					type: "s:update",
-					idObj: object.idObj,
-					actions,
-				}
-				// invio le azioni al listener
-				this.sendToListener(msg, listener, object.version)
+			for (let lstIndex = 0; lstIndex < object.listeners.length; lstIndex++) {
+				this.updateListener(object, lstIndex)
 			}
-			this.gc(object)	
+			this.gc(object)
 		}
+	}
+
+	private updateListener(object: ServerObject, indexlistener: number) {
+		const listener = object.listeners[indexlistener]
+		/** il client è già aggiornato all'ultima versione */
+		if (listener.lastVersion == object.version) return
+
+		let msg: ServerMessage
+		// se il istener è inferiore all'ultima action memorizzata allora mando tutto
+		if (listener.lastVersion < object.actions[0].version) {
+			msg = <ServerInitMessage>{
+				type: "s:init",
+				idObj: object.idObj,
+				data: object.value,
+				version: object.version
+			}
+		} else {
+			/** tutti gli actions da inviare al listener */
+			const actions = object.actions.filter(action => action.version > listener.lastVersion)
+			msg = <ServerUpdateMessage>{
+				type: "s:update",
+				idObj: object.idObj,
+				actions,
+			}
+		}
+		// invio il messaggio di aggiornamento al client
+		this.sendToListener(msg, listener, object.version)
 	}
 
 	/**
 	 * effettivamente invia il messaggio al listener e aggiorna la sua ultima versione
 	 */
-	private async sendToListener(msg: ServerUpdateMessage, listener: Listener, lastVersion: number) {
-		// [II] mmm in alcuni casi potrebbe fallire sto metodo
+	private async sendToListener(msg: ServerMessage, listener: Listener, lastVersion: number) {
+		// [II] mmm in alcuni casi potrebbe fallire sto metodo 
+		// perche' se arriva un altro messaggio prima che questo finisca di eseguire 
+		// allora listener.lastVersion non è piu' quello che era all'inizio
 		let oldVersion = listener.lastVersion
 		try {
 			//listener.lastVersion = -1
@@ -72,7 +88,7 @@ export class ServerObjects {
 	 * elimina azioni che sono sicuramente inviate a tutti i listeners
 	 * @param object 
 	 */
-	private gc(object:ServerObject) {
+	private gc(object: ServerObject) {
 		const minVersion = object.listeners.reduce((min, l) => Math.min(min, l.lastVersion), Infinity)
 		object.actions = truncate(object.actions, minVersion, this.bufferMin)
 	}
@@ -90,16 +106,14 @@ export class ServerObjects {
 		}
 	}
 
-
-
-
-
 	/** 
 	 * riceve un messaggio dal client 
 	 **/
 	receive(messagesStr: string, client: any) {
 		const messages = JSON.parse(messagesStr) as ClientMessage[]
-		for (const message of messages) this.executeMessage(message, client)
+		for (const message of messages) {
+			this.executeMessage(message, client)
+		}
 	}
 	private executeMessage(message: ClientMessage, client: any) {
 		switch (message.type) {
@@ -142,6 +156,7 @@ export class ServerObjects {
 	private getObject(idObj: string, client: any): ServerObject {
 		let object = this.objects[idObj]
 
+		// se l'oggetto non c'e' lo creo
 		if (!object) {
 			object = {
 				idObj,
@@ -152,6 +167,7 @@ export class ServerObjects {
 			}
 			this.objects[idObj] = object
 
+			// se nell'oggetto non c'e' il listener lo aggiungo
 		} else if (!object.listeners.some(l => l.client == client)) {
 			object.listeners.push({
 				client,

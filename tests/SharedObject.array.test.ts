@@ -31,23 +31,18 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 	const { server, client } = buildClientAndServer()
 
 	await client.init("my-object", true)
-	await delay(200)
-
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
 	client.update()
-	await delay(200)
-
 	server.update()
-	await delay(200)
 
 	expect(server.objects["my-object"].value).toEqual([
 		"first row",
 		"third row",
 	])
-	expect(client.objects["my-object"].value).toEqual([
+	expect(client.getObject("my-object").value).toEqual([
 		"first row",
 		"third row",
 	])
@@ -63,14 +58,12 @@ test("send actions", async () => {
 	myClient.onSend = async (message) => myServer.receive(JSON.stringify(message), myClient)
 	myClient.apply = ApplyAction
 
-
-	await myClient.init("pippo", true)
-	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
-	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
+	await myClient.init("my-doc", true)
+	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
+	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 	myClient.update()
-	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1})
-	myClient.command("pippo", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
-
+	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
+	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 
 	// simulo la disconnessione
 	myServer.disconnect(myClient)
@@ -90,21 +83,21 @@ test("send actions", async () => {
 		"third row",
 	]
 
-	expect(myServer.objects["pippo"].value).toEqual(expected)
-	expect(myClient.objects["pippo"].value).toEqual(expected)
+	expect(myServer.objects["my-doc"].value).toEqual(expected)
+	expect(myClient.getObject("my-doc").value).toEqual(expected)
 })
 
 
 test("send actions 2 client", async () => {
 	const myServer = new ServerObjects()
+	myServer.apply = ApplyAction
 	const myClient1 = new ClientObjects()
+	myClient1.apply = ApplyAction
 	myClient1["name"] = "client1"
 	const myClient2 = new ClientObjects()
+	myClient2.apply = ApplyAction
 	myClient2["name"] = "client2"
 
-	// const serverCom = new MemServerComunication(myServer)
-	// const clientCom1 = new MemClientComunication(myClient1, serverCom)
-	// const clientCom2 = new MemClientComunication(myClient2, serverCom)
 	myServer.onSend = async (client, message) => {
 		(<ClientObjects>client).receive(JSON.stringify(message))
 	}
@@ -115,63 +108,24 @@ test("send actions 2 client", async () => {
 		myServer.receive(JSON.stringify(message), myClient2)
 	}
 
+	myClient1.init("my-doc")
 
-	myClient1.observe("pippo", (data) => {
-		console.log("client1", data)
-	})
-	myClient2.observe("pippo", (data) => {
-		console.log("client2", data)
-	})
+	myClient1.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
+	myClient2.init("my-doc")
+	myClient1.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row from 1" })
 
-	myClient1.init("pippo")
-	await delay(500)
+	myClient1.update()
+	myClient2.update()
 
-	myClient1.command("pippo", "add")
-	await delay(200)
-	myClient2.init("pippo")
-	myClient1.command("pippo", "add")
-
-	await delay(200)
 	myServer.update()
-	await delay(500)
 	myServer.update()
-	await delay(1000)
 
-	expect(myServer.objects["pippo"].value).toEqual([
-		"add row version 1",
-		"add row version 2",
-	])
-	expect(myClient1.objects["pippo"].value).toEqual([
-		"add row version 1",
-		"add row version 2",
-	])
-	expect(myClient2.objects["pippo"].value).toEqual([
-		"add row version 1",
-		"add row version 2",
-	])
+	const expected = [
+		"first row from 1",
+		"second row from 1",
+	]
+
+	expect(myServer.objects["my-doc"].value).toEqual(expected)
+	expect(myClient1.getObject("my-doc").value).toEqual(expected)
+	expect(myClient2.getObject("my-doc").value).toEqual(expected)
 })
-
-test("init and fast update sync", async () => {
-	const myServer = new ServerObjects()
-	const myClient = new ClientObjects()
-	myServer.onSend = async (client, message) => {
-		(<ClientObjects>client).receive(JSON.stringify(message))
-	}
-	myClient.onSend = async (message) => {
-		myServer.receive(JSON.stringify(message), myClient)
-	}
-	// const serverCom = new MemServerComunication(myServer)
-	// const clientCom = new MemClientComunication(myClient, serverCom)
-
-	await myClient.init("pippo")
-	myClient.command("pippo", "add")
-
-	await delay(500)
-	myServer.update()
-	await delay(500)
-
-	expect(myClient.objects["pippo"].value).toEqual([
-		"add row version 1",
-	])
-})
-

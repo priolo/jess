@@ -82,7 +82,7 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 		"first row",
 		"third row",
 	])
-	expect(client.objects["my-object"].value).toEqual([
+	expect(client.getObject("my-object").value).toEqual([
 		"first row",
 		"third row",
 	])
@@ -116,8 +116,8 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 		"second row from 1",
 	]
 	expect(server.objects["my-object"].value).toEqual(expected)
-	expect(client1.objects["my-object"].value).toEqual(expected)
-	expect(client2.objects["my-object"].value).toEqual(expected)
+	expect(client1.getObject("my-object").value).toEqual(expected)
+	expect(client2.getObject("my-object").value).toEqual(expected)
 	wss.close()
 	wsc1.close()
 	wsc2.close()
@@ -164,8 +164,8 @@ test("simula una disconnessione di un CLIENT", async () => {
 		"second row from 1",
 	]
 	expect(server.objects["my-object"].value).toEqual(expected)
-	expect(client1.objects["my-object"].value).toEqual(expected)
-	expect(client2.objects["my-object"].value).toEqual(expected)
+	expect(client1.getObject("my-object").value).toEqual(expected)
+	expect(client2.getObject("my-object").value).toEqual(expected)
 	wss.close()
 	wsc1.close()
 	wsc2.close()
@@ -175,6 +175,7 @@ test("il CIENT inizia offline", async () => {
 	const [server, wss] = WSServer()
 	const client = new ClientObjects()
 
+	client.init("my-object", true)
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
 	client.update()
 	await delay(200)
@@ -185,11 +186,14 @@ test("il CIENT inizia offline", async () => {
 	client.update()
 	await delay(200)
 	
+	server.update()
+	await delay(200)
+	
 	const expected = [
 		"first row from 1",
 	]
 	expect(server.objects["my-object"].value).toEqual(expected)
-	expect(client.objects["my-object"].value).toEqual(expected)
+	expect(client.getObject("my-object").value).toEqual(expected)
 
 	wss.close()
 	wsc.close()
