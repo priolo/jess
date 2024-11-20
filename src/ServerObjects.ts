@@ -36,14 +36,13 @@ export class ServerObjects {
 			this.gc(object)
 		}
 	}
-
 	private updateListener(object: ServerObject, indexlistener: number) {
 		const listener = object.listeners[indexlistener]
 		/** il client è già aggiornato all'ultima versione */
 		if (listener.lastVersion == object.version) return
 
 		let msg: ServerMessage
-		// se il istener è inferiore all'ultima action memorizzata allora mando tutto
+		// se il listener è inferiore all'ultima action memorizzata allora mando tutto
 		if (listener.lastVersion < object.actions[0].version) {
 			msg = <ServerInitMessage>{
 				type: "s:init",
@@ -63,7 +62,6 @@ export class ServerObjects {
 		// invio il messaggio di aggiornamento al client
 		this.sendToListener(msg, listener, object.version)
 	}
-
 	/**
 	 * effettivamente invia il messaggio al listener e aggiorna la sua ultima versione
 	 */
@@ -121,6 +119,7 @@ export class ServerObjects {
 			// il CLIENT chiede di ricevere l'inizializzazione di un OBJECT
 			case "c:init": {
 				const msgInit = message as ClientInitMessage
+				client._jess_id = msgInit.clientId
 				const object = this.getObject(msgInit.payload.idObj, client)
 				// invio lo stato iniziale
 				const msg: ServerInitMessage = {
@@ -136,7 +135,7 @@ export class ServerObjects {
 			// il CLIENT invia un comando per modificare un OBJECT
 			case "c:update": {
 				const msg = message as ClientUpdateMessage
-				this.updateFromCommand(msg.payload.idObj, msg.payload.command, msg.payload.atVersion)
+				this.updateFromAction(msg.idObj, msg.action)
 				break
 			}
 
@@ -179,17 +178,16 @@ export class ServerObjects {
 	}
 
 	/** aggiorno l'OBJ con un command (generico)*/
-	private updateFromCommand(idObj: string, command: any, atVersion: number) {
+	private updateFromAction(idObj: string, clientAction: Action) {
 		const object = this.objects[idObj]
 		if (!object) return
 		object.version++
-		const act: Action = {
-			command,
-			atVersion,
+		const action: Action = {
+			...clientAction,
 			version: object.version,
 		}
 		// [II] OTTIMIZZAZIONE: se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
-		object.actions.push(act)
-		object.value = this.apply(object.value, act)
+		object.actions.push(action)
+		object.value = this.apply(object.value, action.command)
 	}
 }

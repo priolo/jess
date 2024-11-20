@@ -1,15 +1,13 @@
 import { ApplyActionFunction } from "../ClientObjects.types";
-import { Action } from "../ServerObjects.types";
 
 
 
 /**
  * Applica un'azione ad un array
  */
-export const ApplyAction: ApplyActionFunction = (data, action) => {
+export const ApplyAction: ApplyActionFunction = (data, command) => {
 	if (!data) data = []
-	if (!action) return data
-	const command = action.command
+	if (!command) return data
 
 	switch (command?.type) {
 		case TYPE_ARRAY_COMMAND.REMOVE: {

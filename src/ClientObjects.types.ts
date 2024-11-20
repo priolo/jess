@@ -11,6 +11,8 @@ export interface ClientObject {
 	idObj: string
 	/** valore locale */
 	value: any[]
+	/** value wait */
+	valueWait?: any[]
 	/** ultima versione di aggiornamento */
 	version: number
 }
@@ -21,6 +23,7 @@ export interface ClientObject {
  * dice al server che il client vuole ricevere e osservare un OBJECT
  */
 export interface ClientInitMessage {
+	clientId: string
 	type: "c:init"
 	payload: {
 		idObj: string
@@ -44,11 +47,8 @@ export interface ClientResetMessage {
  * */
 export interface ClientUpdateMessage {
 	type: "c:update"
-	payload: {
-		idObj: string, // id dell'Obj
-		atVersion: number,
-		command: any,
-	}
+	idObj: string
+	action: Action
 }
 
 export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientResetMessage
@@ -58,4 +58,6 @@ export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientRese
  * Viene implementata per condividere diversi tipi di dato
  * IMPORTANTE: deve essere implementata in modo che sia possibile chiamarla con parametri nulli (inizializzazione)
  */
-export type ApplyActionFunction = (data?: any, action?: Action) => any;
+export type ApplyActionFunction = (data?: any, command?: any) => any;
+
+export type MultiApplyActionFunction = (data?: any, command?: any[]) => any;

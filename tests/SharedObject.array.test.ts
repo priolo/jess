@@ -2,6 +2,7 @@ import { ClientObjects } from "../src/ClientObjects"
 import { ServerObjects } from "../src/ServerObjects"
 import { delay } from "../src/utils"
 import { ApplyAction, TYPE_ARRAY_COMMAND } from "../src/applicators/ArrayApplicator"
+import { ClientObject } from "../src/ClientObjects.types"
 
 
 /**
@@ -53,7 +54,7 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 test("send actions", async () => {
 	const myServer = new ServerObjects()
 	const myClient = new ClientObjects()
-	myServer.onSend = async (client, message) => (<ClientObjects>client).receive(JSON.stringify(message))
+	myServer.onSend = async (client:ClientObjects, message) => client.receive(JSON.stringify(message))
 	myServer.apply = ApplyAction
 	myClient.onSend = async (message) => myServer.receive(JSON.stringify(message), myClient)
 	myClient.apply = ApplyAction
@@ -98,8 +99,8 @@ test("send actions 2 client", async () => {
 	myClient2.apply = ApplyAction
 	myClient2["name"] = "client2"
 
-	myServer.onSend = async (client, message) => {
-		(<ClientObjects>client).receive(JSON.stringify(message))
+	myServer.onSend = async (client:ClientObjects, message) => {
+		client.receive(JSON.stringify(message))
 	}
 	myClient1.onSend = async (message) => {
 		myServer.receive(JSON.stringify(message), myClient1)
@@ -128,4 +129,62 @@ test("send actions 2 client", async () => {
 	expect(myServer.objects["my-doc"].value).toEqual(expected)
 	expect(myClient1.getObject("my-doc").value).toEqual(expected)
 	expect(myClient2.getObject("my-doc").value).toEqual(expected)
+})
+
+
+test("correct recostruction", async () => {
+	const myServer = new ServerObjects()
+	myServer.apply = ApplyAction
+	myServer.onSend = async (client:ClientObjects, message) => client.receive(JSON.stringify(message))
+	const myClientA = new ClientObjects()
+	myClientA.apply = ApplyAction
+	myClientA.onSend = async (message) => myServer.receive(JSON.stringify(message), myClientA)
+	const myClientB = new ClientObjects()
+	myClientB.apply = ApplyAction
+	myClientB.onSend = async (message) => myServer.receive(JSON.stringify(message), myClientB)
+
+	myClientA.init("my-doc")
+	myClientB.init("my-doc")
+
+	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-1" })
+	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-2" })
+	myClientA.update()
+	// server: A1; A2
+	myClientB.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "B-1" })
+	myClientB.update()
+	// server: A1; A2; B1
+	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-3" })
+	// server: A1; A2; B1; A3
+	// clientA: A1; A2; A3
+
+	myServer.update()
+
+
+	const expected = [
+	]
+
+	expect(myServer.objects["my-doc"].value).toEqual(expected)
+	expect(myClientA.getObject("my-doc").value).toEqual(expected)
+	expect(myClientB.getObject("my-doc").value).toEqual(expected)
+})
+
+
+test("ottimizza il send ai client se c'e' solo un intervento", async () => {
+	const myServer = new ServerObjects()
+	myServer.apply = ApplyAction
+	const myClientA = new ClientObjects()
+	myClientA.apply = ApplyAction
+	myClientA["name"] = "client1"
+	const myClientB = new ClientObjects()
+	myClientB.apply = ApplyAction
+	myClientB["name"] = "client2"
+
+	
+
+	const expected = [
+	]
+
+	expect(myServer.objects["my-doc"].value).toEqual(expected)
+	expect(myClientA.getObject("my-doc").value).toEqual(expected)
+	expect(myClientB.getObject("my-doc").value).toEqual(expected)
 })

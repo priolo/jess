@@ -13,13 +13,15 @@ export interface Listener {
 }
 
 export interface Action {
+	idClient: string
+	counter: number
 	/** qaulsiasi comando che permetta l'aggiornamento */
 	command: any
 	/** la versione in cui è stato eseguito questo command */
-	atVersion: number
+	//atVersion: number
 	/** l'ordine in cui è memorizzato il COMMAND nel SERVER 
 	 * cioe' questo aggiornamento porta l'oggetto a che versione */
-	version: number
+	version?: number
 }
 
 // MESSAGES
@@ -34,6 +36,6 @@ export interface ServerInitMessage {
 
 export interface ServerUpdateMessage {
 	type: "s:update"
-	idObj: string
+	idObj: string		
 	actions: Action[]
 }
