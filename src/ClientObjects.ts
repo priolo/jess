@@ -70,7 +70,7 @@ export class ClientObjects {
 		const message: ClientInitMessage = {
 			clientId: this.id,
 			type: "c:init",
-			payload: { idObj }
+			idObj,
 		}
 		this.buffer.push(message)
 		if (!send) return
@@ -133,6 +133,11 @@ export class ClientObjects {
 			case "s:init": {
 				const msgInit = message as ServerInitMessage
 				this.setObject(msgInit.idObj, msgInit.data, msgInit.version)
+
+				// TO DO da capire se farlo sempre 
+				this.waitBuffer = []
+				this.objects[msgInit.idObj].valueWait = this.getWaitValue(msgInit.idObj)
+
 				this.initResponse?.resolve()
 				this.initResponse = null
 				break
@@ -140,6 +145,8 @@ export class ClientObjects {
 			case "s:update": {
 				const serverMsgUp = message as ServerUpdateMessage
 				this.updateObject(serverMsgUp.idObj, serverMsgUp.actions)
+
+				// TODO mettere in "updateObject" 
 				// elimino il message tra quelli in attesa
 				this.waitBuffer = this.waitBuffer.filter(msg => {
 					const msgUp = msg as ClientUpdateMessage
@@ -148,7 +155,6 @@ export class ClientObjects {
 							action.idClient == msgUp.action.idClient && action.counter == msgUp.action.counter
 						)
 				})
-
 				this.objects[serverMsgUp.idObj].valueWait = this.getWaitValue(serverMsgUp.idObj)
 
 				break
@@ -200,7 +206,7 @@ export class ClientObjects {
 		if (!obj) throw new Error("Object not found")
 		// prendo tutti i messaggi in attesa per questo oggetto
 		let v = obj.value
-		const msgBuffer = this.waitBuffer
+		const msgBuffer = this.waitBuffer.concat(this.buffer)
 		for (const msg of msgBuffer) {
 			const msgUp: ClientUpdateMessage = msg as ClientUpdateMessage
 			if (msgUp.idObj != idObj) continue

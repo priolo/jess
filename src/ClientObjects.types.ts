@@ -23,11 +23,9 @@ export interface ClientObject {
  * dice al server che il client vuole ricevere e osservare un OBJECT
  */
 export interface ClientInitMessage {
-	clientId: string
 	type: "c:init"
-	payload: {
-		idObj: string
-	}
+	clientId: string
+	idObj: string
 }
 
 /** 

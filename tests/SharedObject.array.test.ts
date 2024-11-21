@@ -148,15 +148,15 @@ test("correct recostruction", async () => {
 
 	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-1" })
 	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-2" })
-	myClientA.update()
+	await myClientA.update()
 	// server: A1; A2
 	myClientB.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "B-1" })
-	myClientB.update()
+	await myClientB.update()
 	// server: A1; A2; B1
 	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-3" })
-	// server: A1; A2; B1; A3
-	// clientA: A1; A2; A3
 
+	// server: A1; A2; B1
+	// clientA: A1; A2; A3
 	myServer.update()
 
 

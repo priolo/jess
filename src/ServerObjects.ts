@@ -120,7 +120,7 @@ export class ServerObjects {
 			case "c:init": {
 				const msgInit = message as ClientInitMessage
 				client._jess_id = msgInit.clientId
-				const object = this.getObject(msgInit.payload.idObj, client)
+				const object = this.getObject(msgInit.idObj, client)
 				// invio lo stato iniziale
 				const msg: ServerInitMessage = {
 					type: "s:init",
