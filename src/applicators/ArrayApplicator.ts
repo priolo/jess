@@ -1,4 +1,4 @@
-import { ApplyActionFunction } from "../ClientObjects.types";
+import { ApplyActionFunction } from "../ClientObjects.types.js";
 
 
 

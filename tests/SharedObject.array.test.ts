@@ -50,11 +50,10 @@ test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
 })
 
 
-
 test("send actions", async () => {
 	const myServer = new ServerObjects()
 	const myClient = new ClientObjects()
-	myServer.onSend = async (client:ClientObjects, message) => client.receive(JSON.stringify(message))
+	myServer.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
 	myServer.apply = ApplyAction
 	myClient.onSend = async (message) => myServer.receive(JSON.stringify(message), myClient)
 	myClient.apply = ApplyAction
@@ -99,7 +98,7 @@ test("send actions 2 client", async () => {
 	myClient2.apply = ApplyAction
 	myClient2["name"] = "client2"
 
-	myServer.onSend = async (client:ClientObjects, message) => {
+	myServer.onSend = async (client: ClientObjects, message) => {
 		client.receive(JSON.stringify(message))
 	}
 	myClient1.onSend = async (message) => {
@@ -133,39 +132,40 @@ test("send actions 2 client", async () => {
 
 
 test("correct recostruction", async () => {
-	const myServer = new ServerObjects()
-	myServer.apply = ApplyAction
-	myServer.onSend = async (client:ClientObjects, message) => client.receive(JSON.stringify(message))
-	const myClientA = new ClientObjects()
-	myClientA.apply = ApplyAction
-	myClientA.onSend = async (message) => myServer.receive(JSON.stringify(message), myClientA)
-	const myClientB = new ClientObjects()
-	myClientB.apply = ApplyAction
-	myClientB.onSend = async (message) => myServer.receive(JSON.stringify(message), myClientB)
+	const server = new ServerObjects()
+	server.apply = ApplyAction
+	server.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
+	const client = new ClientObjects()
+	client.apply = ApplyAction
+	client.onSend = async (message) => server.receive(JSON.stringify(message), client)
 
-	myClientA.init("my-doc")
-	myClientB.init("my-doc")
+	client.init("my-doc")
+	client.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-1" })
+	await client.update()
+	server.update()
+	client.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-2" })
+	await client.update()
+	client.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-3" })
 
-	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-1" })
-	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-2" })
-	await myClientA.update()
-	// server: A1; A2
-	myClientB.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "B-1" })
-	await myClientB.update()
-	// server: A1; A2; B1
-	myClientA.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "A-3" })
+	const expectedServer = ["A-1", "A-2"]
+	const expectedClient = ["A-1"]
+	const expectedClientTemp = ["A-1", "A-2", "A-3"]
+	expect(server.objects["my-doc"].value).toEqual(expectedServer)
+	expect(client.getObject("my-doc").value).toEqual(expectedClient)
+	expect(client.getObject("my-doc").valueWait).toEqual(expectedClientTemp)
+	expect(client.getWaitValue("my-doc")).toEqual(expectedClientTemp)
+})
 
-	// server: A1; A2; B1
-	// clientA: A1; A2; A3
-	myServer.update()
+test("init recostruction", async () => {
+	const client = new ClientObjects()
+	client.apply = ApplyAction
+	client.onSend = async (message) => {}
 
+	client.init("my-doc", true)
 
-	const expected = [
-	]
-
-	expect(myServer.objects["my-doc"].value).toEqual(expected)
-	expect(myClientA.getObject("my-doc").value).toEqual(expected)
-	expect(myClientB.getObject("my-doc").value).toEqual(expected)
+	const expectedClient = []
+	expect(client.getObject("my-doc").value).toEqual(expectedClient)
+	expect(client.getObject("my-doc").valueWait).toEqual(expectedClient)
 })
 
 
@@ -179,7 +179,7 @@ test("ottimizza il send ai client se c'e' solo un intervento", async () => {
 	myClientB.apply = ApplyAction
 	myClientB["name"] = "client2"
 
-	
+
 
 	const expected = [
 	]

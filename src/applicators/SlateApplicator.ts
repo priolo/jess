@@ -1,5 +1,5 @@
 import { createEditor, Descendant, Transforms, withoutNormalizing } from "slate";
-import { ApplyActionFunction } from "../ClientObjects.types";
+import { ApplyActionFunction } from "../ClientObjects.types.js";
 
 
 

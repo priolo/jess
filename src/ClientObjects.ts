@@ -1,5 +1,7 @@
-import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage, MultiApplyActionFunction } from "./ClientObjects.types"
-import { Action, ServerInitMessage, ServerUpdateMessage } from "./ServerObjects.types"
+import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage, MultiApplyActionFunction } from "./ClientObjects.types.js"
+import { Action, ServerInitMessage, ServerUpdateMessage } from "./ServerObjects.types.js"
+
+
 
 let idCounter = 0
 
@@ -67,12 +69,14 @@ export class ClientObjects {
 		// 	}
 		// 	return Promise.resolve()
 		// }
+		this.getObject(idObj)
 		const message: ClientInitMessage = {
 			clientId: this.id,
 			type: "c:init",
 			idObj,
 		}
 		this.buffer.push(message)
+
 		if (!send) return
 		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 		await this.update()
@@ -92,7 +96,9 @@ export class ClientObjects {
 			idObj,
 			action: { idClient: this.id, counter: idCounter++, command }
 		}
+
 		this.buffer.push(message)
+		this.updateWaitValue(idObj)
 	}
 
 	/** 
@@ -120,7 +126,10 @@ export class ClientObjects {
 			this.buffer.push(...temp)
 			throw error
 		}
-		this.waitBuffer.push(...temp)
+		this.waitBuffer.push(...temp);
+
+		[...new Set(temp.map(m => (m as ClientUpdateMessage).idObj))]
+			.forEach(idObj => this.updateWaitValue(idObj))
 	}
 
 	/** 
@@ -132,54 +141,60 @@ export class ClientObjects {
 		switch (message.type) {
 			case "s:init": {
 				const msgInit = message as ServerInitMessage
-				this.setObject(msgInit.idObj, msgInit.data, msgInit.version)
+				this.objects[msgInit.idObj] = {
+					idObj: msgInit.idObj,
+					value: msgInit.data,
+					valueWait: null,
+					version: msgInit.version,
+				}
 
-				// TO DO da capire se farlo sempre 
+				// [II] TODO da capire se farlo sempre 
 				this.waitBuffer = []
-				this.objects[msgInit.idObj].valueWait = this.getWaitValue(msgInit.idObj)
+				this.updateWaitValue(msgInit.idObj)
+
+				this.notify(msgInit.idObj, this.objects[msgInit.idObj].value)
 
 				this.initResponse?.resolve()
 				this.initResponse = null
 				break
 			}
 			case "s:update": {
-				const serverMsgUp = message as ServerUpdateMessage
-				this.updateObject(serverMsgUp.idObj, serverMsgUp.actions)
+				const msgUp = message as ServerUpdateMessage
+				//this.updateObject(msgUp.idObj, msgUp.actions)
 
-				// TODO mettere in "updateObject" 
+				const obj = this.objects[msgUp.idObj]
+				if (!obj) throw new Error("Object not found")
+				for (const action of msgUp.actions) {
+					obj.value = this.apply(obj.value, action.command)
+				}
+				obj.version = msgUp.actions[msgUp.actions.length - 1].version
+
+				// [II] TODO mettere in "updateObject" 
 				// elimino il message tra quelli in attesa
-				this.waitBuffer = this.waitBuffer.filter(msg => {
-					const msgUp = msg as ClientUpdateMessage
-					return msgUp.idObj != serverMsgUp.idObj
-						|| !serverMsgUp.actions.some(action =>
-							action.idClient == msgUp.action.idClient && action.counter == msgUp.action.counter
-						)
-				})
-				this.objects[serverMsgUp.idObj].valueWait = this.getWaitValue(serverMsgUp.idObj)
+				this.filterWaitBuffer(msgUp.idObj, msgUp.actions)
+				this.updateWaitValue(msgUp.idObj)
+
+				this.notify(msgUp.idObj, obj.value)
 
 				break
 			}
 		}
 	}
 
+	//#region OBJECT
+
 	/**
 	 * Recupera o crea un OBJECT
 	 */
 	getObject(idObj: string): ClientObject {
 		let object = this.objects[idObj]
-		if (!object) this.objects[idObj] = object = { idObj, value: [], version: 0 }
+		if (!object) this.objects[idObj] = object = { 
+			idObj, 
+			value: this.apply(), 
+			valueWait: this.apply(), 
+			version: 0 
+		}
 		return object
-	}
-
-	/**
-	 * setto il vaore di un OBJECT
-	 * @param idObj id dell'oggetto
-	 * @param value valore da assegnare
-	 * @param version versione dell'oggetto
-	 */
-	private setObject(idObj: string, value: any[], version: number) {
-		this.objects[idObj] = { idObj, value, version }
-		this.notify(idObj, value)
 	}
 
 	/**
@@ -187,31 +202,58 @@ export class ClientObjects {
 	 * @param idObj id dell'oggetto
 	 * @param actions azioni da applicare
 	 */
-	private updateObject(idObj: string, actions: Action[]) {
-		const obj = this.objects[idObj]
-		if (!obj) throw new Error("Object not found")
-		for (const action of actions) {
-			obj.value = this.apply(obj.value, action.command)
-		}
-		obj.version = actions[actions.length - 1].version
-		this.notify(idObj, obj.value)
+	// private updateObject(idObj: string, actions: Action[]) {
+	// 	const obj = this.objects[idObj]
+	// 	if (!obj) throw new Error("Object not found")
+	// 	for (const action of actions) {
+	// 		obj.value = this.apply(obj.value, action.command)
+	// 	}
+	// 	obj.version = actions[actions.length - 1].version
+	// }
+
+	//#endregion
+
+
+
+	//#region WAIT BUFFER
+
+	/**
+	 * elimina i messaggi in attesa che sono stati eseguiti
+	 * @param idObj id dell'oggetto
+	 * @param actions azioni applicate
+	 */
+	filterWaitBuffer(idObj: string, actions: Action[]) {
+		this.waitBuffer = this.waitBuffer.filter(msg => {
+			const msgUp = msg as ClientUpdateMessage
+			return msgUp.idObj != idObj
+				|| !actions.some(action =>
+					action.idClient == msgUp.action.idClient && action.counter == msgUp.action.counter
+				)
+		})
 	}
 
-
-
-
-
+	/**
+	 * restituisce il valore di un OBJECT con tutte le modifiche in attesa
+	 * @param idObj id dell'oggetto
+	 */
 	getWaitValue(idObj: string): any {
-		const obj = this.objects[idObj]
-		if (!obj) throw new Error("Object not found")
 		// prendo tutti i messaggi in attesa per questo oggetto
-		let v = obj.value
+		// [II] ATTENZIONE BISOGNA FARE UN CLONE DEEP
+		const obj = this.objects[idObj]
+		let v = !!obj ? [...obj.value] : this.apply()
+		
 		const msgBuffer = this.waitBuffer.concat(this.buffer)
 		for (const msg of msgBuffer) {
+			if (msg.type != "c:update") continue
 			const msgUp: ClientUpdateMessage = msg as ClientUpdateMessage
 			if (msgUp.idObj != idObj) continue
 			v = this.apply(v, msgUp.action.command)
 		}
 		return v
 	}
+	updateWaitValue(idObj: string) {
+		this.objects[idObj].valueWait = this.getWaitValue(idObj)
+	}
+
+	//#endregion
 }

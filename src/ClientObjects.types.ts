@@ -1,7 +1,7 @@
 
 // DATA
 
-import { Action } from "./ServerObjects.types"
+import { Action } from "./ServerObjects.types.js"
 
 /**
  * il proxy locale dell'oggetto remoto idObj
@@ -12,7 +12,7 @@ export interface ClientObject {
 	/** valore locale */
 	value: any[]
 	/** value wait */
-	valueWait?: any[]
+	valueWait: any[]
 	/** ultima versione di aggiornamento */
 	version: number
 }
