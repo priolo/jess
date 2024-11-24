@@ -1,7 +1,7 @@
 import { ClientObjects } from "../ClientObjects"
 import { ServerObjects } from "../ServerObjects"
 import { delay } from "../utils"
-import { ApplyAction, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
+import { ApplyActions, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
 
 
 
@@ -16,8 +16,8 @@ function buildClientAndServer() {
 	/** quando devo inviare al client scrivo direttamente sul "receiver" */
 	client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
 	/** uso un "apply" su array */
-	server.apply = ApplyAction
-	client.apply = ApplyAction
+	server.apply = ApplyActions
+	client.apply = ApplyActions
 	return { server, client }
 }
 
@@ -54,9 +54,9 @@ test("send actions", async () => {
 	const myServer = new ServerObjects()
 	const myClient = new ClientObjects()
 	myServer.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
-	myServer.apply = ApplyAction
+	myServer.apply = ApplyActions
 	myClient.onSend = async (message) => myServer.receive(JSON.stringify(message), myClient)
-	myClient.apply = ApplyAction
+	myClient.apply = ApplyActions
 
 	await myClient.init("my-doc", true)
 	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
@@ -90,12 +90,12 @@ test("send actions", async () => {
 
 test("send actions 2 client", async () => {
 	const myServer = new ServerObjects()
-	myServer.apply = ApplyAction
+	myServer.apply = ApplyActions
 	const myClient1 = new ClientObjects()
-	myClient1.apply = ApplyAction
+	myClient1.apply = ApplyActions
 	myClient1["name"] = "client1"
 	const myClient2 = new ClientObjects()
-	myClient2.apply = ApplyAction
+	myClient2.apply = ApplyActions
 	myClient2["name"] = "client2"
 
 	myServer.onSend = async (client: ClientObjects, message) => {
@@ -133,10 +133,10 @@ test("send actions 2 client", async () => {
 
 test("correct recostruction", async () => {
 	const server = new ServerObjects()
-	server.apply = ApplyAction
+	server.apply = ApplyActions
 	server.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
 	const client = new ClientObjects()
-	client.apply = ApplyAction
+	client.apply = ApplyActions
 	client.onSend = async (message) => server.receive(JSON.stringify(message), client)
 
 	client.init("my-doc")
@@ -158,7 +158,7 @@ test("correct recostruction", async () => {
 
 test("init recostruction", async () => {
 	const client = new ClientObjects()
-	client.apply = ApplyAction
+	client.apply = ApplyActions
 	client.onSend = async (message) => {}
 
 	client.init("my-doc", true)
@@ -171,12 +171,12 @@ test("init recostruction", async () => {
 
 test("ottimizza il send ai client se c'e' solo un intervento", async () => {
 	const myServer = new ServerObjects()
-	myServer.apply = ApplyAction
+	myServer.apply = ApplyActions
 	const myClientA = new ClientObjects()
-	myClientA.apply = ApplyAction
+	myClientA.apply = ApplyActions
 	myClientA["name"] = "client1"
 	const myClientB = new ClientObjects()
-	myClientB.apply = ApplyAction
+	myClientB.apply = ApplyActions
 	myClientB["name"] = "client2"
 
 

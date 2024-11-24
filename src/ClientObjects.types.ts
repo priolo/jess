@@ -56,6 +56,5 @@ export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientRese
  * Viene implementata per condividere diversi tipi di dato
  * IMPORTANTE: deve essere implementata in modo che sia possibile chiamarla con parametri nulli (inizializzazione)
  */
-export type ApplyActionFunction = (data?: any, command?: any) => any;
-export type ApplyActionsFunction = (data?: any, command?: any[]) => any;
+export type ApplyCommandFunction = (data?: any, command?: any) => any
 

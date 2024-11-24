@@ -1,4 +1,4 @@
-import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
+import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
 import { Action, Listener, ServerInitMessage, ServerMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types.js"
 import { truncate } from "./utils.js"
 
@@ -12,7 +12,7 @@ export class ServerObjects {
 	/**
 	 * modifica un OBJECT tramite un ACTION
 	 */
-	apply: ApplyActionFunction = null
+	apply: ApplyCommandFunction = null
 	/** 
 	 * invia al client un messaggio 
 	 * emette un errore se il messaggio non è stato inviato correttamente
@@ -105,50 +105,69 @@ export class ServerObjects {
 	}
 
 	/** 
-	 * riceve un messaggio dal client 
+	 * riceve una serie di messaggi da un client 
 	 **/
 	receive(messagesStr: string, client: any) {
 		const messages = JSON.parse(messagesStr) as ClientMessage[]
+		const groups:{[idObj:string]:ClientUpdateMessage[]} = {}
+
 		for (const message of messages) {
-			this.executeMessage(message, client)
+			switch( message.type ) {
+				case "c:init": {
+					this.execInitMessage(message as ClientInitMessage, client)
+					break
+				}
+				case "c:reset": {
+					this.execResetMessage(message as ClientResetMessage, client)
+					break
+				}
+				case "c:update": {
+					const msg = message as ClientUpdateMessage
+					if( !groups[msg.idObj] ) groups[msg.idObj] = []
+					groups[msg.idObj].push(msg)
+					break
+				}
+			}
+		}
+
+		for( const idObj in groups ) {
+			this.execUpdateMessages(idObj, groups[idObj])
 		}
 	}
-	private executeMessage(message: ClientMessage, client: any) {
-		switch (message.type) {
-
-			// il CLIENT chiede di ricevere l'inizializzazione di un OBJECT
-			case "c:init": {
-				const msgInit = message as ClientInitMessage
-				client._jess_id = msgInit.clientId
-				const object = this.getObject(msgInit.idObj, client)
-				// invio lo stato iniziale
-				const msg: ServerInitMessage = {
-					type: "s:init",
-					idObj: object.idObj,
-					data: [...object.value],
-					version: object.actions[object.actions.length - 1]?.version ?? 0
-				}
-				this.onSend(client, msg)
-				break
+	// tutti con lo stesso idObj
+	private execUpdateMessages(idObj:string, messages: ClientUpdateMessage[]) {
+		const object = this.objects[idObj]
+		if (!object) return		
+		const cmmToApply:any[] = []
+		for (const msg of messages) {
+			object.version++
+			const action: Action = {
+				...msg.action,
+				version: object.version,
 			}
-
-			// il CLIENT invia un comando per modificare un OBJECT
-			case "c:update": {
-				const msg = message as ClientUpdateMessage
-				this.updateFromAction(msg.idObj, msg.action)
-				break
-			}
-
-			// il CLIENT invia la versione a cui è arrivato su tutti gli OBJECTs
-			case "c:reset": {
-				const msg = message as ClientResetMessage
-				msg.payload.forEach(obj => {
-					const object = this.getObject(obj.idObj, client)
-					object.listeners.find(l => l.client == client).lastVersion = obj.version
-				})
-				break
-			}
+			// [II] OTTIMIZZAZIONE: se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
+			object.actions.push(action)
+			cmmToApply.push(action.command)
 		}
+		object.value = this.apply(object.value, cmmToApply)
+	}
+	private execInitMessage(message: ClientInitMessage, client: any) {
+		const object = this.getObject(message.idObj, client)
+		// invio lo stato iniziale
+		const msg: ServerInitMessage = {
+			type: "s:init",
+			idObj: object.idObj,
+			data: [...object.value],
+			version: object.actions[object.actions.length - 1]?.version ?? 0
+		}
+		this.onSend(client, msg)
+		client._jess_id = message.clientId
+	}
+	private execResetMessage(message: ClientResetMessage, client: any) {
+		message.payload.forEach(obj => {
+			const object = this.getObject(obj.idObj, client)
+			object.listeners.find(l => l.client == client).lastVersion = obj.version
+		})
 	}
 
 	/** recupera/crea un OBJ (assegno il listener "client") */
@@ -177,17 +196,4 @@ export class ServerObjects {
 		return object
 	}
 
-	/** aggiorno l'OBJ con un command (generico)*/
-	private updateFromAction(idObj: string, clientAction: Action) {
-		const object = this.objects[idObj]
-		if (!object) return
-		object.version++
-		const action: Action = {
-			...clientAction,
-			version: object.version,
-		}
-		// [II] OTTIMIZZAZIONE: se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
-		object.actions.push(action)
-		object.value = this.apply(object.value, action.command)
-	}
 }

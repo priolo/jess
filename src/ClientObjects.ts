@@ -1,4 +1,4 @@
-import { ApplyActionFunction, ApplyActionsFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
+import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
 import { Action, ServerInitMessage, ServerUpdateMessage } from "./ServerObjects.types.js"
 
 
@@ -8,10 +8,9 @@ let idCounter = 0
 export class ClientObjects {
 
 	/**
-	 * modifica un OBJECT tramite un ACTION
+	 * modifica un OBJECT tramite una serie di ACTIONs
 	 */
-	apply: ApplyActionFunction = null
-	multiApply: ApplyActionsFunction = null
+	apply: ApplyCommandFunction = null
 
 	/** 
 	 * invia al server un messaggio 
@@ -165,14 +164,7 @@ export class ClientObjects {
 				const obj = this.objects[msgUp.idObj]
 				if (!obj) throw new Error("Object not found")
 
-				if (this.multiApply) {
-					obj.value = this.multiApply(obj.value, msgUp.actions.map(a => a.command))
-				} else {
-					for (const action of msgUp.actions) {
-						obj.value = this.apply(obj.value, action.command)
-					}
-				}
-
+				obj.value = this.apply(obj.value, msgUp.actions.map(a => a.command))
 				obj.version = msgUp.actions[msgUp.actions.length - 1].version
 
 				// [II] TODO mettere in "updateObject" 
@@ -255,15 +247,7 @@ export class ClientObjects {
 			acc.push(msgUp.action.command)
 			return acc
 		}, [] as any[])
-
-		if (this.multiApply) {
-			v = this.multiApply(v, commands)
-		} else {
-			for (const command of commands) {
-				v = this.apply(v, command)
-			}
-		}
-
+		v = this.apply(v, commands)
 		return v
 	}
 	updateWaitValue(idObj: string) {

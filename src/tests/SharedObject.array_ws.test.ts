@@ -2,7 +2,7 @@ import WebSocket, { WebSocketServer } from 'ws';
 import { ClientObjects } from "../ClientObjects.js"
 import { ServerObjects } from "../ServerObjects.js"
 import { delay } from "../utils"
-import { ApplyAction, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
+import { ApplyActions, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
 
 
 
@@ -26,7 +26,7 @@ import { ApplyAction, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
 function WSServer(): [ServerObjects, WebSocketServer] {
 
 	const server = new ServerObjects()
-	server.apply = ApplyAction
+	server.apply = ApplyActions
 	server.onSend = async (ws: WebSocket, message) => ws.send(JSON.stringify(message))
 
 	const wss = new WebSocketServer({ port: 8080 })
@@ -42,7 +42,7 @@ async function WSClient(cli?: ClientObjects): Promise<[ClientObjects, WebSocket]
 	const ws = new WebSocket('ws://localhost:8080');
 
 	const client = cli ?? new ClientObjects()
-	client.apply = ApplyAction
+	client.apply = ApplyActions
 	client.onSend = async (message) => ws.send(JSON.stringify(message))
 	ws.on('message', (data: string) => client.receive(data));
 
@@ -174,6 +174,7 @@ test("simula una disconnessione di un CLIENT", async () => {
 test("il CIENT inizia offline", async () => {
 	const [server, wss] = WSServer()
 	const client = new ClientObjects()
+	client.apply = ApplyActions
 
 	client.init("my-object", true)
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })

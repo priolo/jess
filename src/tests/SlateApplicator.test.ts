@@ -69,7 +69,7 @@ test("editazione in un punto non editabile2", async () => {
 		},
 	]
 
-	let value = SlateApplicator.ApplyAction()
+	let value = SlateApplicator.ApplyActions()
 	value = SlateApplicator.ApplyActions(value, actions)
 
 	// actions.forEach(action => {

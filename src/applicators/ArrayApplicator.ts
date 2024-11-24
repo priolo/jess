@@ -1,14 +1,22 @@
-import { ApplyActionFunction } from "../ClientObjects.types.js";
+import { ApplyCommandFunction } from "../ClientObjects.types.js";
 
 
 
 /**
- * Applica un'azione ad un array
+ * Applica una serie di COMMANDS ad un array
  */
-export const ApplyAction: ApplyActionFunction = (data, command) => {
+export const ApplyActions: ApplyCommandFunction = (data, commands) => {
 	if (!data) data = []
-	if (!command) return data
+	if (!commands || commands.length == 0) return data
+	if (!Array.isArray(commands)) commands = [commands]
 
+	for (const c of commands) {
+		data = ApplyAction(data, c)
+	}
+	return data
+}
+
+const ApplyAction: ApplyCommandFunction = (data, command) => {
 	switch (command?.type) {
 		case TYPE_ARRAY_COMMAND.REMOVE: {
 			if (command.index == null) {
