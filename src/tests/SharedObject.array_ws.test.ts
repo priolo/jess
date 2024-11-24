@@ -1,8 +1,8 @@
 import WebSocket, { WebSocketServer } from 'ws';
-import { ClientObjects } from "../src/ClientObjects"
-import { ServerObjects } from "../src/ServerObjects"
-import { delay } from "../src/utils"
-import { ApplyAction, TYPE_ARRAY_COMMAND } from "../src/applicators/ArrayApplicator"
+import { ClientObjects } from "../ClientObjects.js"
+import { ServerObjects } from "../ServerObjects.js"
+import { delay } from "../utils"
+import { ApplyAction, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
 
 
 

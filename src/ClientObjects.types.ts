@@ -57,5 +57,5 @@ export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientRese
  * IMPORTANTE: deve essere implementata in modo che sia possibile chiamarla con parametri nulli (inizializzazione)
  */
 export type ApplyActionFunction = (data?: any, command?: any) => any;
+export type ApplyActionsFunction = (data?: any, command?: any[]) => any;
 
-export type MultiApplyActionFunction = (data?: any, command?: any[]) => any;

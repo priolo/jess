@@ -1,4 +1,4 @@
-import { truncate } from "../src/utils";
+import { truncate } from "../utils";
 
 
 

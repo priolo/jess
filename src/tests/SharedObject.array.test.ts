@@ -1,8 +1,8 @@
-import { ClientObjects } from "../src/ClientObjects"
-import { ServerObjects } from "../src/ServerObjects"
-import { delay } from "../src/utils"
-import { ApplyAction, TYPE_ARRAY_COMMAND } from "../src/applicators/ArrayApplicator"
-import { ClientObject } from "../src/ClientObjects.types"
+import { ClientObjects } from "../ClientObjects"
+import { ServerObjects } from "../ServerObjects"
+import { delay } from "../utils"
+import { ApplyAction, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
+
 
 
 /**

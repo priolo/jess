@@ -1,18 +1,35 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "preserveConstEnums": true,
+    "allowArbitraryExtensions": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true, 
+    "declaration": true,
     "declarationMap": true,
     "strictNullChecks": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
 }

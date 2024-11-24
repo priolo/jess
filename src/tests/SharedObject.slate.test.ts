@@ -1,6 +1,6 @@
-import { ClientObjects } from "../src/ClientObjects"
-import { ServerObjects } from "../src/ServerObjects"
-import { ApplyAction } from "../src/applicators/SlateApplicator"
+import { ClientObjects } from "../ClientObjects.js"
+import { ServerObjects } from "../ServerObjects.js"
+import { ApplyAction } from "../applicators/SlateApplicator.js"
 
 
 

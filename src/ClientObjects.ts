@@ -1,4 +1,4 @@
-import { ApplyActionFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage, MultiApplyActionFunction } from "./ClientObjects.types.js"
+import { ApplyActionFunction, ApplyActionsFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
 import { Action, ServerInitMessage, ServerUpdateMessage } from "./ServerObjects.types.js"
 
 
@@ -11,7 +11,7 @@ export class ClientObjects {
 	 * modifica un OBJECT tramite un ACTION
 	 */
 	apply: ApplyActionFunction = null
-	multiApply: MultiApplyActionFunction = null
+	multiApply: ApplyActionsFunction = null
 
 	/** 
 	 * invia al server un messaggio 
@@ -164,9 +164,15 @@ export class ClientObjects {
 
 				const obj = this.objects[msgUp.idObj]
 				if (!obj) throw new Error("Object not found")
-				for (const action of msgUp.actions) {
-					obj.value = this.apply(obj.value, action.command)
+
+				if (this.multiApply) {
+					obj.value = this.multiApply(obj.value, msgUp.actions.map(a => a.command))
+				} else {
+					for (const action of msgUp.actions) {
+						obj.value = this.apply(obj.value, action.command)
+					}
 				}
+
 				obj.version = msgUp.actions[msgUp.actions.length - 1].version
 
 				// [II] TODO mettere in "updateObject" 
@@ -188,11 +194,11 @@ export class ClientObjects {
 	 */
 	getObject(idObj: string): ClientObject {
 		let object = this.objects[idObj]
-		if (!object) this.objects[idObj] = object = { 
-			idObj, 
-			value: this.apply(), 
-			valueWait: this.apply(), 
-			version: 0 
+		if (!object) this.objects[idObj] = object = {
+			idObj,
+			value: this.apply(),
+			valueWait: this.apply(),
+			version: 0
 		}
 		return object
 	}
@@ -241,14 +247,23 @@ export class ClientObjects {
 		// [II] ATTENZIONE BISOGNA FARE UN CLONE DEEP
 		const obj = this.objects[idObj]
 		let v = !!obj ? [...obj.value] : this.apply()
-		
 		const msgBuffer = this.waitBuffer.concat(this.buffer)
-		for (const msg of msgBuffer) {
-			if (msg.type != "c:update") continue
-			const msgUp: ClientUpdateMessage = msg as ClientUpdateMessage
-			if (msgUp.idObj != idObj) continue
-			v = this.apply(v, msgUp.action.command)
+		const commands = msgBuffer.reduce((acc, msg) => {
+			if (msg.type != "c:update") return acc
+			const msgUp = msg as ClientUpdateMessage
+			if (msgUp.idObj != idObj) return acc
+			acc.push(msgUp.action.command)
+			return acc
+		}, [] as any[])
+
+		if (this.multiApply) {
+			v = this.multiApply(v, commands)
+		} else {
+			for (const command of commands) {
+				v = this.apply(v, command)
+			}
 		}
+
 		return v
 	}
 	updateWaitValue(idObj: string) {
