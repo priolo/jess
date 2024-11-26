@@ -20,7 +20,8 @@ export interface Action {
 	/** la versione in cui è stato eseguito questo command */
 	//atVersion: number
 	/** l'ordine in cui è memorizzato il COMMAND nel SERVER 
-	 * cioe' questo aggiornamento porta l'oggetto a che versione */
+	 * cioe' questo aggiornamento porta l'oggetto a che versione 
+	 **/
 	version?: number
 }
 

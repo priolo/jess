@@ -13,10 +13,10 @@ export class ClientObjects {
 	apply: ApplyCommandFunction = null
 
 	/** 
-	 * invia al server un messaggio 
+	 * invia al server una serie di messaggi
 	 * emette un errore se il messaggio non è stato inviato correttamente
 	*/
-	onSend: (messages: ClientMessage[]) => Promise<void> = null
+	onSend: (messages: ClientMessage[]) => Promise<any> = null
 
 	/**libreria di BJECTs */
 	private id: string = crypto.randomUUID()
@@ -60,14 +60,6 @@ export class ClientObjects {
 	 * @param update se true invia subito la richiesta al server e aspetta la risposta
 	 **/
 	async init(idObj: string, send?: boolean): Promise<void> {
-		// if (this.objects[idObj]) {
-		// 	try {
-		// 		await this.reset()
-		// 	} catch (error) {
-		// 		return Promise.reject(error)
-		// 	}
-		// 	return Promise.resolve()
-		// }
 		this.getObject(idObj)
 		const message: ClientInitMessage = {
 			clientId: this.id,
@@ -80,7 +72,6 @@ export class ClientObjects {
 		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 		await this.update()
 		return promise
-		//return new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 	}
 
 	/** 
@@ -117,10 +108,11 @@ export class ClientObjects {
 	async update(): Promise<void> {
 		// non ho nulla da mandare...
 		if (this.buffer.length == 0 || !this.onSend) return
-		const temp = this.buffer
+		let temp = this.buffer
 		this.buffer = []
 		try {
-			await this.onSend(temp)
+			const res = await this.onSend(temp)
+			if (res != null) temp = res
 		} catch (error) {
 			this.buffer.push(...temp)
 			throw error
@@ -164,6 +156,15 @@ export class ClientObjects {
 				const obj = this.objects[msgUp.idObj]
 				if (!obj) throw new Error("Object not found")
 
+				// nel caso non ci sia command allora cerco di recuperarlo da un messaggio in attesa
+				msgUp.actions.forEach(action => {
+					if (action.idClient != this.id || !!action.command) return
+					action.command = (this.waitBuffer.find(m => {
+						const msgUp = m as ClientUpdateMessage
+						return msgUp.idObj == obj.idObj && msgUp.action.idClient == action.idClient && msgUp.action.counter == action.counter
+					}) as ClientUpdateMessage)?.action?.command
+				})
+
 				obj.value = this.apply(obj.value, msgUp.actions.map(a => a.command))
 				obj.version = msgUp.actions[msgUp.actions.length - 1].version
 
@@ -171,9 +172,7 @@ export class ClientObjects {
 				// elimino il message tra quelli in attesa
 				this.filterWaitBuffer(msgUp.idObj, msgUp.actions)
 				this.updateWaitValue(msgUp.idObj)
-
 				this.notify(msgUp.idObj, obj.value)
-
 				break
 			}
 		}

@@ -19,7 +19,7 @@ export class ServerObjects {
 	 * */
 	onSend: (client: any, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
 
-	/**libreria di BJECTs */
+	/**libreria di OBJECTs */
 	objects: { [idObj: string]: ServerObject } = {}
 	/** buffer minimo di azioni da mantenere */
 	bufferMin: number = 1000
@@ -53,6 +53,9 @@ export class ServerObjects {
 		} else {
 			/** tutti gli actions da inviare al listener */
 			const actions = object.actions.filter(action => action.version > listener.lastVersion)
+			actions.forEach(action => {
+				if (action.idClient == listener.client._jess_id) action.command = null
+			})
 			msg = <ServerUpdateMessage>{
 				type: "s:update",
 				idObj: object.idObj,
