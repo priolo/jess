@@ -34,6 +34,7 @@ export interface ClientInitMessage {
  * */
 export interface ClientResetMessage {
 	type: "c:reset"
+	clientId: string
 	payload: {
 		idObj: string,
 		version: number,

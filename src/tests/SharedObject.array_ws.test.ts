@@ -97,19 +97,18 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	const [client2, wsc2] = await WSClient()
 
 	await client1.init("my-object", true)
-
 	client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
 	await client2.init("my-object", true)
 	client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row from 1" })
 	client2.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 2" })
-	client2.update()
-	client1.update()
+	await client2.update()
+	await client1.update()
 	await delay(200)
 
 	server.update()
 	await delay(200)
 
-	
+
 	const expected = [
 		"first row from 2",
 		"first row from 1",
@@ -122,7 +121,6 @@ test("sincronizza due CLIENT con il SERVER", async () => {
 	wsc1.close()
 	wsc2.close()
 })
-
 
 test("simula una disconnessione di un CLIENT", async () => {
 	const [server, wss] = WSServer()
@@ -157,7 +155,7 @@ test("simula una disconnessione di un CLIENT", async () => {
 	server.update()
 	await delay(200)
 
-	
+
 	const expected = [
 		"first row from 1",
 		"first row from 2",
@@ -175,21 +173,29 @@ test("il CIENT inizia offline", async () => {
 	const [server, wss] = WSServer()
 	const client = new ClientObjects()
 	client.apply = ApplyActions
+	
+    
+	function wrapInit() {
+		client.init("my-object", true)
+	}
+	function wrapUpdate () {
+		client.update()
+	}
 
-	client.init("my-object", true)
+	
+    expect(wrapInit).toThrow()
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
-	client.update()
-	await delay(200)
+	expect(wrapUpdate()).toThrow()
 
 	// il client si connette
 	const [_, wsc] = await WSClient(client)
-	client.reset()
-	client.update()
+	await client.reset()
+	await client.update()
 	await delay(200)
-	
+
 	server.update()
 	await delay(200)
-	
+
 	const expected = [
 		"first row from 1",
 	]
@@ -199,7 +205,6 @@ test("il CIENT inizia offline", async () => {
 	wss.close()
 	wsc.close()
 })
-
 
 test("verifica funzionamento del GC sul SERVER", async () => {
 	const [server, wss] = WSServer()

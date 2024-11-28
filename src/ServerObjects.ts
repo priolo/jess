@@ -39,11 +39,12 @@ export class ServerObjects {
 	private updateListener(object: ServerObject, indexlistener: number) {
 		const listener = object.listeners[indexlistener]
 		/** il client è già aggiornato all'ultima versione */
-		if (listener.lastVersion == object.version) return
+		if (listener.lastVersion == object.version || object.actions.length == 0) return
 
 		let msg: ServerMessage
 		// se il listener è inferiore all'ultima action memorizzata allora mando tutto
-		if (listener.lastVersion < object.actions[0].version) {
+		const firstVersion = object.actions[0].version
+		if (listener.lastVersion < firstVersion && firstVersion > 1) {
 			msg = <ServerInitMessage>{
 				type: "s:init",
 				idObj: object.idObj,
@@ -52,9 +53,10 @@ export class ServerObjects {
 			}
 		} else {
 			/** tutti gli actions da inviare al listener */
-			const actions = object.actions.filter(action => action.version > listener.lastVersion)
-			actions.forEach(action => {
-				if (action.idClient == listener.client._jess_id) action.command = null
+			let actions = object.actions.filter(action => action.version > listener.lastVersion)
+			actions = actions.map(action => {
+				if (action.idClient != listener.client._jess_id) return action
+				return { ...action, command: null }
 			})
 			msg = <ServerUpdateMessage>{
 				type: "s:update",
@@ -112,10 +114,10 @@ export class ServerObjects {
 	 **/
 	receive(messagesStr: string, client: any) {
 		const messages = JSON.parse(messagesStr) as ClientMessage[]
-		const groups:{[idObj:string]:ClientUpdateMessage[]} = {}
+		const groups: { [idObj: string]: ClientUpdateMessage[] } = {}
 
 		for (const message of messages) {
-			switch( message.type ) {
+			switch (message.type) {
 				case "c:init": {
 					this.execInitMessage(message as ClientInitMessage, client)
 					break
@@ -126,22 +128,22 @@ export class ServerObjects {
 				}
 				case "c:update": {
 					const msg = message as ClientUpdateMessage
-					if( !groups[msg.idObj] ) groups[msg.idObj] = []
+					if (!groups[msg.idObj]) groups[msg.idObj] = []
 					groups[msg.idObj].push(msg)
 					break
 				}
 			}
 		}
 
-		for( const idObj in groups ) {
+		for (const idObj in groups) {
 			this.execUpdateMessages(idObj, groups[idObj])
 		}
 	}
 	// tutti con lo stesso idObj
-	private execUpdateMessages(idObj:string, messages: ClientUpdateMessage[]) {
+	private execUpdateMessages(idObj: string, messages: ClientUpdateMessage[]) {
 		const object = this.objects[idObj]
-		if (!object) return		
-		const cmmToApply:any[] = []
+		if (!object) return
+		const cmmToApply: any[] = []
 		for (const msg of messages) {
 			object.version++
 			const action: Action = {
@@ -171,6 +173,7 @@ export class ServerObjects {
 			const object = this.getObject(obj.idObj, client)
 			object.listeners.find(l => l.client == client).lastVersion = obj.version
 		})
+		client._jess_id = message.clientId
 	}
 
 	/** recupera/crea un OBJ (assegno il listener "client") */

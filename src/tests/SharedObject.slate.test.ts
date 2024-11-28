@@ -35,7 +35,7 @@ test("send actions", async () => {
 		"text": "ut"
 	})
 	myServer.update()
-	myClient.update()
+	await myClient.update()
 	myServer.update()
 
 	const expected = [
