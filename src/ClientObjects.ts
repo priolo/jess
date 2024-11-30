@@ -56,12 +56,12 @@ export class ClientObjects {
 
 
 	/** 
-	 * chiede al server di sincronizzare un oggetto
-	 * tipicamente quando l'oggetto è creato oppure quando si chiude la connessione di comunicazione
-	 * @param idObj id dell'oggetto da sincronizzare
-	 * @param update se true invia subito la richiesta al server e aspetta la risposta
+	 * chiede al SERVER di sincronizzare un OGGETTO
+	 * @param idObj id dell'OGGETTO da sincronizzare
+	 * @param update se true invia subito la richiesta al SERVER e aspetta la risposta
 	 **/
 	async init(idObj: string, send?: boolean): Promise<void> {
+		// se non esiste crea l'oggetto
 		this.getObject(idObj)
 		const message: ClientInitMessage = {
 			clientId: this.id,
@@ -69,7 +69,7 @@ export class ClientObjects {
 			idObj,
 		}
 		this.buffer.push(message)
-
+		// se è da inviare allora preparo la promise e lo invio
 		if (!send) return
 		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 		await this.update()
@@ -130,7 +130,7 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * riceve un MESSAGE dal server
+	 * riceve un MESSAGE dal SERVER
 	 * @param messageStr messaggio da parsare
 	 * */
 	receive(messageStr: string) {
@@ -147,8 +147,7 @@ export class ClientObjects {
 					version: msgInit.version,
 				}
 
-				// azzero i messaggi in attesa per questo oggetto
-				//this.waitBuffer = []
+				// aggiorno il valore "provvisorio" con il valore reale
 				this.updateWaitValue(msgInit.idObj)
 
 				this.notify(msgInit.idObj, this.objects[msgInit.idObj].value)

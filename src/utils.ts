@@ -1,3 +1,4 @@
+import net from "net"
 
 /**
  * Delay the execution of the current function by `ms` milliseconds.
@@ -10,4 +11,17 @@ export const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 export function truncate(values: any[], minValue: number, minLength: number): any[] {
     const length = values.length;
     return values.filter((v, i) => (length - i) <= minLength || v >= minValue);
+}
+
+/**
+ * Restituisce una porta random libera
+ */
+export async function getFreePort(): Promise<number> {
+	return new Promise(res => {
+		const srv = net.createServer();
+		srv.listen(0, () => {
+			const port = (<net.AddressInfo>srv.address()).port
+			srv.close((err) => res(port))
+		});
+	})
 }

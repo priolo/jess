@@ -1,35 +1,24 @@
 import WebSocket, { WebSocketServer } from 'ws';
-import { ClientObjects } from "../ClientObjects.js"
-import { ServerObjects } from "../ServerObjects.js"
-import { delay } from "../utils"
-import { ApplyActions, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
+import { ApplyActions, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator";
+import { ClientObjects } from "../ClientObjects.js";
+import { ServerObjects } from "../ServerObjects.js";
+import { delay } from "../utils";
 
 
 
-/**
- * Creo un CLIET e un SERVER legati localmente in modo che possano comunicare tra loro
- */
-// function buildClientAndServer() {
-// 	const server = new ServerObjects()
-// 	const client = new ClientObjects()
-// 	server.onSend = async (client, message) => client.receive(JSON.stringify(message))
-// 	client.onSend = async (message) => server.receive(JSON.stringify(message), client)
-// 	server.apply = ApplyAction
-// 	client.apply = ApplyAction
-// 	return { server, client }
-// }
-
+let PORT = 8080
 
 /**
  * Crea un server WebSocket
  */
 function WSServer(): [ServerObjects, WebSocketServer] {
 
+
 	const server = new ServerObjects()
 	server.apply = ApplyActions
 	server.onSend = async (ws: WebSocket, message) => ws.send(JSON.stringify(message))
 
-	const wss = new WebSocketServer({ port: 8080 })
+	const wss = new WebSocketServer({ port: PORT })
 	wss.on('connection', (ws: WebSocket) => {
 		ws.on('message', (data: string) => server.receive(data.toString(), ws))
 		ws.on('close', () => server.disconnect(ws))
@@ -58,6 +47,7 @@ afterAll(async () => {
 })
 
 test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
+	console.log("*** PORT", PORT)
 	const [server, wss] = WSServer()
 	const [client, wsc] = await WSClient()
 
@@ -169,21 +159,21 @@ test("simula una disconnessione di un CLIENT", async () => {
 	wsc2.close()
 })
 
-test("il CIENT inizia offline", async () => {
+test("[II] non riesc a gestire il try in un test JEST! il CIENT inizia offline", async () => {
 	const [server, wss] = WSServer()
 	const client = new ClientObjects()
 	client.apply = ApplyActions
-	
-    
+
+
 	function wrapInit() {
 		client.init("my-object", true)
 	}
-	function wrapUpdate () {
+	function wrapUpdate() {
 		client.update()
 	}
 
-	
-    expect(wrapInit).toThrow()
+
+	expect(wrapInit).toThrow()
 	client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row from 1" })
 	expect(wrapUpdate()).toThrow()
 

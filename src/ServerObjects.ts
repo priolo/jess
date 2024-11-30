@@ -2,9 +2,6 @@ import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientResetMess
 import { Action, Listener, ServerInitMessage, ServerMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types.js"
 import { truncate } from "./utils.js"
 
-// import path from 'path';
-// import { fileURLToPath } from 'url';
-// const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 export class ServerObjects {
@@ -67,19 +64,16 @@ export class ServerObjects {
 		// invio il messaggio di aggiornamento al client
 		this.sendToListener(msg, listener, object.version)
 	}
+
 	/**
 	 * effettivamente invia il messaggio al listener e aggiorna la sua ultima versione
 	 */
 	private async sendToListener(msg: ServerMessage, listener: Listener, lastVersion: number) {
-		// [II] mmm in alcuni casi potrebbe fallire sto metodo 
-		// perche' se arriva un altro messaggio prima che questo finisca di eseguire 
-		// allora listener.lastVersion non è piu' quello che era all'inizio
+		// [II] potrebbe fallire perche' se arriva un altro messaggio prima che questo finisca di eseguire allora listener.lastVersion non è piu' quello che era all'inizio
 		let oldVersion = listener.lastVersion
 		try {
-			//listener.lastVersion = -1
 			listener.lastVersion = lastVersion
 			await this?.onSend(listener.client, msg)
-			//listener.lastVersion = lastVersion
 		} catch (error) {
 			console.error(error)
 			listener.lastVersion = oldVersion
@@ -100,7 +94,6 @@ export class ServerObjects {
 	 * disconnette un client 
 	 **/
 	disconnect(client: any) {
-		//console.log( "disconnect", __dirname )
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
 			const index = object.listeners.findIndex(l => l.client == client)
@@ -135,11 +128,11 @@ export class ServerObjects {
 			}
 		}
 
+		// eseguo gli aggiornamenti a blocchi per ogni OBJECT
 		for (const idObj in groups) {
 			this.execUpdateMessages(idObj, groups[idObj])
 		}
 	}
-	// tutti con lo stesso idObj
 	private execUpdateMessages(idObj: string, messages: ClientUpdateMessage[]) {
 		const object = this.objects[idObj]
 		if (!object) return
@@ -150,7 +143,6 @@ export class ServerObjects {
 				...msg.action,
 				version: object.version,
 			}
-			// [II] OTTIMIZZAZIONE: se atVerson == version -1 allora è un comando che non non deve essere mandato a chi lo ha inviato quindi il lastversion de client che ha mandato questo messaggio lo si aggiorna a quello attuale in maniera che non lo manda appunto
 			object.actions.push(action)
 			cmmToApply.push(action.command)
 		}
@@ -162,7 +154,7 @@ export class ServerObjects {
 		const msg: ServerInitMessage = {
 			type: "s:init",
 			idObj: object.idObj,
-			data: [...object.value],
+			data: object.value,
 			version: object.actions[object.actions.length - 1]?.version ?? 0
 		}
 		this.onSend(client, msg)

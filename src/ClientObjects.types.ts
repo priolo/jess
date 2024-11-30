@@ -1,35 +1,43 @@
-
-// DATA
-
 import { Action } from "./ServerObjects.types.js"
 
+
+
+//#region *** DATA ***
+
 /**
- * il proxy locale dell'oggetto remoto idObj
+ * il proxy locale dell'OBJECT remoto `idObj`
  */
 export interface ClientObject {
-	/** identificativo */
+	/** identificativo del CLIENT*/
 	idObj: string
-	/** valore locale */
-	value: any[]
-	/** value wait */
+	/** valore locale aggiornato dal SERVER*/
+	value: any
+	/** value locale precalcolato con le ultime ACTIONs*/
 	valueWait: any[]
-	/** ultima versione di aggiornamento */
+	/** ultima versione a cui è aggiornato questo "value" */
 	version: number
 }
 
-// MESSAGES
+//#endregion
+
+
+
+//#region *** MESSAGES ***
 
 /**
- * dice al server che il client vuole ricevere e osservare un OBJECT
+ * dice al SERVER che il CLIENT vuole ricevere e osservare un OBJECT
  */
 export interface ClientInitMessage {
 	type: "c:init"
+	/** l'id del CLIENT serve per registrarmi sul SEERVER */
 	clientId: string
+	/** id dell OBJECT a cui siamo interessati */
 	idObj: string
 }
 
 /** 
- * dice al server a quale versione il client è arrivato su tutti gli OBJECTs osservati 
+ * dice al SERVER a quale versione il CLIENT è arrivato 
+ * su tutti gli OBJECTs osservati 
  * Serve quando il client si disconnette e si riconnette
  * */
 export interface ClientResetMessage {
@@ -42,7 +50,7 @@ export interface ClientResetMessage {
 }
 
 /** 
- * dice al server che il client ha eseguito un comando di aggiornamento su un OBJECT osservato
+ * dice al SERVER che il CLIENT ha eseguito un comando di aggiornamento su un OBJECT osservato
  * */
 export interface ClientUpdateMessage {
 	type: "c:update"
@@ -59,3 +67,4 @@ export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientRese
  */
 export type ApplyCommandFunction = (data?: any, command?: any) => any
 
+//#endregion
