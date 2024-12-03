@@ -1,0 +1,27 @@
+{
+  "name": "test-jess-server",
+  "version": "1.0.0",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+
+  "main": "dist/index.js",
+  "type": "module",
+
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts"
+  },
+  
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@priolo/jess": "file://C:/Users/iorio/Documents/jess",
+    "ws": "^8.18.0"
+  }
+}

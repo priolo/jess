@@ -13,7 +13,7 @@ export interface ClientObject {
 	/** valore locale aggiornato dal SERVER*/
 	value: any
 	/** value locale precalcolato con le ultime ACTIONs*/
-	valueWait: any[]
+	valueTemp: any
 	/** ultima versione a cui è aggiornato questo "value" */
 	version: number
 }

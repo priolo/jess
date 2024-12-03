@@ -4,47 +4,125 @@ A lightweight synchronization system for shared objects between clients and serv
 
 ## Core Components
 
-[ClientObjects](./docs/ServerObjects.md)
+[ClientObjects](./docs/ServerObjects.md)  
 [ServerObjects](./docs/ServerObjects.md)
 
 ## How it Works
 
+# CLIENT
+
+La classe `ClientObjects` mantiene copie locali degli oggetti   
+e gestisce la comunicazione con il server per sincronizzarli.  
+Tipicamente si utilizza nel browser
 
 ```typescript
 // crea l'oggetto `ClientObjects` per gestire la sincronizzazione lato CLIENT
 export const clientObjects = new ClientObjects()
+
 // Imposto la funzione di modifica (in questo caso per un array). 
 // Puoi usare una di defalt o definirne una personalizzata.
 // Applica e aggiorna il `value` di un OBJECT con un ACTION
-clientObjects.apply = ArrayApplicator.ApplyActions
+clientObjects.apply = ArrayApplicator.ApplyCommands
+
 // Callback di `ClientObjects` eseguita quando bisogna inviare i messaggi al SERVER
 // Puoi usare i WebSocket o qualunque altro metodo di trasporto
 clientObjects.onSend = async (messages: ClientMessage[]) => { 
 	// per esempio con i websocket...
 	websocket.send(JSON.stringify(messages))
 }
+
 // Dichiara al SERVER che il CIENT vuole osservare gli aggiornamenti di `myObject`
 // `true` = la richiesta è inviata immediatamente e aspetta la conferma dal SERVER
 await clientObjects.init('myObject', true)
+
 // memorizza localmente due comandi
 clientObjects.command('myObject', { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
 clientObjects.command('myObject', { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
+
 // invia tutti i comandi memorizzati al SERVER per sincronizzare gli OBJECT osservati
 clisntObjects.update()
+
+// prelevo il valore di un OBJECT
+const myObject = clientObjects.getObject('myObject').value
+
+// e il suo valore TEMPORANEO
+const myObject = clientObjects.getObject('myObject').valueTemp
 ```
 
-1. **Inizializzazione:** I client inizializzano gli oggetti che desiderano osservare utilizzando `init`.
-2. **Comandi dai Client:** I client inviano comandi al server usando `command`.
-3. **Elaborazione sul Server:** Il server elabora i comandi e aggiorna il suo stato interno.
-4. **Broadcast dal Server:** Il server trasmette le modifiche a tutti i client in ascolto.
-5. **Aggiornamento dei Client:** I client aggiornano il loro stato locale e notificano gli osservatori registrati.
+# SERVER
 
-Il sistema utilizza il tracciamento delle versioni per garantire la coerenza e gestisce le disconnessioni di rete attraverso la ricostruzione dello stato.
+La classe `ServerObjects`  
+applica agli oggetti sul SERVER le azioni dai CLIENT  
+e invia gli aggiornamenti ai CLIENTs stessi.  
+Tipicamente si utilizza su un server Node.js.  
 
-## Applicators
+```typescript
+// crea l'oggetto `ServerObjects` per gestire la sincronizzazione lato SERVER
+export const serverObjects = new ServerObjects()
 
-Gli applicatori personalizzati possono essere definiti per gestire diversi tipi di oggetti condivisi:
+// Imposto la funzione di modifica (in questo caso per un array).
+// Puoi usare una di defalt o definirne una personalizzata.
+// Applica e aggiorna il `value` di un OBJECT con un ACTION
+serverObjects.apply = ArrayApplicator.ApplyCommands
 
-- `ArrayApplicator` - Per array sincronizzati.
-- `SlateApplicator` - Per documenti di testo ricchi.
-- È possibile implementare applicatori personalizzati per altri tipi di dati.
+// Callback di `ServerObjects` eseguita quando bisogna inviare i messaggi al CLIENT
+// Puoi usare i WebSocket o qualunque altro metodo di trasporto
+// In questo caso invia i messaggi al CLIENT tramite WebSocket
+server.onSend = async (client: any , message: ServerMessage) => 
+	(<WebSocket>client).send(JSON.stringify(message))
+
+// da chiamare quando il sistema di trasporto scelto riceve un messaggio da un CLIENT
+// per esempio con i WebSockets...
+wss.on('connection', (ws: WebSocket) => {
+	ws.on('message', (data: string) => server.receive(data.toString(), ws))
+	// quando il CLIENT si disconnette lo rimuovo dai LISTENERs
+	ws.on('close', () => server.disconnect(ws))
+})
+
+//aggiorno tutti i CLIENTs in LISTENER
+server.update()
+```
+
+# ESEMPIO LOCALE
+
+```typescript
+// creo CLIENT e SERVER
+const server = new ServerObjects()
+const client = new ClientObjects()
+
+// quando il SERVER deve inviare scrivo direttamente sul "receiver" del CLIENT 
+server.onSend = async (client, message) => client.receive(JSON.stringify(message))
+// e il contrario
+client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
+
+/** uso un "apply" su array */
+server.apply = ApplyCommands
+client.apply = ApplyCommands
+
+// impsto i commands localmente
+await client.init("my-object", true)
+client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
+client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
+client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
+client.command("my-object", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
+
+// situazione prima di sincronizzare
+console.log(client.getObject("my-object").value) 		// []
+console.log(client.getObject("my-object").valueTemp) 	// ["first row", "third row"]
+console.log(server.getObject("my-object").value) 		// []
+
+// mando la richiesta di sincronizzare gli OBJECT osservati al SERVER
+await client.update()
+// 
+server.update()
+
+console.log(client.getObject("my-object").value) 		// ["first row", "third row"]
+console.log(client.getObject("my-object").valueTemp) 	// ["first row", "third row"]
+console.log(server.getObject("my-object").value) 		// ["first row", "third row"]
+```
+
+
+
+Ma la cosa che ci interessa di piu' è farlo funzionare con SLATE per React!  
+E' proprio per quello che è stato creato JESS.
+

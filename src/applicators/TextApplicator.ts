@@ -3,7 +3,7 @@ import { ApplyCommandFunction } from "../ClientObjects.types.js";
 /**
  * Applica una serie di COMMANDS ad una stringa
  */
-export const ApplyActions: ApplyCommandFunction = (data: string, commands: TextCommand[]) => {
+export const ApplyCommands: ApplyCommandFunction = (data: string, commands: TextCommand[]) => {
 	if (data == null) data = ""
 	if (!commands || commands.length == 0) return data
 	if (!Array.isArray(commands)) commands = [commands]
@@ -45,6 +45,40 @@ export function Normalize(commands: TextCommand[]): TextCommand[] {
 	}
 	newCommands.push(commandPrev)
 	return newCommands
+}
+
+
+export function CommandFromKey (keyCode:string, selectionStart:number, selectopnEnd:number): TextCommand {
+	const range = selectopnEnd - selectionStart
+	const visibleCharacters = /^[a-zA-Z0-9\s.,;:!?(){}[\]'"<>@#$%^&*+=_-]$/
+	let command:TextCommand = null
+
+	if (visibleCharacters.test(keyCode)) {
+		command ={
+			text: keyCode,
+			index: selectionStart,
+			toDelete: range
+		}
+	} else if (keyCode === 'Backspace') {
+		command ={
+			text: '',
+			index: selectionStart + (range == 0 ? -1 : 0),
+			toDelete: range == 0 ? 1 : range
+		}
+	} else if (keyCode === 'Delete') {
+		command ={
+			text: '',
+			index: selectionStart,
+			toDelete: range == 0 ? 1 : range
+		}
+	} else if (keyCode === 'Enter') {
+		command ={
+			text: '\n',
+			index: selectionStart,
+			toDelete: range,
+		}
+	}
+	return command
 }
 
 

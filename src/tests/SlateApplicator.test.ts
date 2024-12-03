@@ -1,3 +1,4 @@
+import { createEditor } from "slate"
 import { SlateApplicator } from "../index.js"
 
 
@@ -69,8 +70,8 @@ test("editazione in un punto non editabile2", async () => {
 		},
 	]
 
-	let value = SlateApplicator.ApplyActions()
-	value = SlateApplicator.ApplyActions(value, actions)
+	let value = SlateApplicator.ApplyCommands()
+	value = SlateApplicator.ApplyCommands(value, actions)
 
 	// actions.forEach(action => {
 	// 	value = SlateApplicator.ApplyAction(value, action)
@@ -80,4 +81,24 @@ test("editazione in un punto non editabile2", async () => {
 		{ children: [{ text: "1" }] },
 		{ children: [{ text: "2" }] },
 	])
+})
+
+test("test selector sconfinamento", async () => {
+	const editor = createEditor()
+	editor.children = [
+		{ children: [{ text: "testo riga uno" }] },
+		{ children: [{ text: "testo riga due" }] },
+		{ children: [{ text: "testo riga tre" }] },
+	]
+	editor.setSelection({
+		anchor: { path: [0, 0], offset: 6 },
+		focus: { path: [1, 0], offset: 5 }
+	})
+	editor.onChange()
+	editor.children = [
+		{ children: [{ text: "testo riga uno" }] },
+	]
+
+	console.log(editor.selection)
+	console.log ( editor.end([])) 
 })

@@ -24,7 +24,7 @@ export class ClientObjects {
 	private observers: { [idObj: string]: ((data: any) => void)[] } = {}
 	private initResponse: { resolve: () => void, reject: (m: any) => void } | null = null
 	private buffer: ClientMessage[] = []
-	private waitBuffer: ClientUpdateMessage[] = []
+	private bufferTemp: ClientUpdateMessage[] = []
 
 
 
@@ -82,6 +82,7 @@ export class ClientObjects {
 	 * @param command comando da eseguire
 	 **/
 	command(idObj: string, command: any) {
+		if ( !idObj || command == null) return
 		this.getObject(idObj)
 		const message: ClientUpdateMessage = {
 			type: "c:update",
@@ -89,7 +90,7 @@ export class ClientObjects {
 			action: { idClient: this.id, counter: idCounter++, command }
 		}
 		this.buffer.push(message)
-		this.updateWaitValue(idObj)
+		this.updateValueTemp(idObj)
 	}
 
 	/** 
@@ -124,9 +125,9 @@ export class ClientObjects {
 		}
 
 		// memorizzo i MESSAGES inviati per ricostruire il valore intanto che aspetto la conferma dal server
-		this.waitBuffer.push(...temp.filter(m => m.type == "c:update"));
+		this.bufferTemp.push(...temp.filter(m => m.type == "c:update"));
 		const idObjs = temp.map(m => (m as ClientUpdateMessage).idObj);
-		[...new Set(idObjs)].forEach(idObj => this.updateWaitValue(idObj))
+		[...new Set(idObjs)].forEach(idObj => this.updateValueTemp(idObj))
 	}
 
 	/** 
@@ -143,12 +144,12 @@ export class ClientObjects {
 				this.objects[msgInit.idObj] = {
 					idObj: msgInit.idObj,
 					value: msgInit.data,
-					valueWait: null,
+					valueTemp: null,
 					version: msgInit.version,
 				}
 
 				// aggiorno il valore "provvisorio" con il valore reale
-				this.updateWaitValue(msgInit.idObj)
+				this.updateValueTemp(msgInit.idObj)
 
 				this.notify(msgInit.idObj, this.objects[msgInit.idObj].value)
 
@@ -167,7 +168,7 @@ export class ClientObjects {
 				// nel caso non ci sia command allora cerco di recuperarlo da un messaggio in attesa
 				for (const action of msgUp.actions) {
 					if (action.idClient != this.id || !!action.command) continue
-					action.command = (this.waitBuffer.find(m => {
+					action.command = (this.bufferTemp.find(m => {
 						const msgUp = m as ClientUpdateMessage
 						return m.type == "c:update" && msgUp.idObj == obj.idObj && msgUp.action?.idClient == action.idClient && msgUp.action?.counter == action.counter
 					}) as ClientUpdateMessage)?.action?.command
@@ -177,8 +178,8 @@ export class ClientObjects {
 				obj.version = msgUp.actions[msgUp.actions.length - 1].version
 
 				// elimino il MESSAGE tra quelli in attesa
-				this.filterWaitBuffer(msgUp.idObj, msgUp.actions)
-				this.updateWaitValue(msgUp.idObj)
+				this.filterBufferTemp(msgUp.idObj, msgUp.actions)
+				this.updateValueTemp(msgUp.idObj)
 
 				this.notify(msgUp.idObj, obj.value)
 				break
@@ -196,7 +197,7 @@ export class ClientObjects {
 		if (!object) this.objects[idObj] = object = {
 			idObj,
 			value: this.apply(),
-			valueWait: this.apply(),
+			valueTemp: this.apply(),
 			version: 0
 		}
 		return object
@@ -213,8 +214,8 @@ export class ClientObjects {
 	 * @param idObj id dell'oggetto
 	 * @param actions azioni applicate
 	 */
-	private filterWaitBuffer(idObj: string, actions: Action[]) {
-		this.waitBuffer = this.waitBuffer.filter(msgUp => {
+	private filterBufferTemp(idObj: string, actions: Action[]) {
+		this.bufferTemp = this.bufferTemp.filter(msgUp => {
 			return msgUp.idObj != idObj
 				|| !actions.some(action =>
 					action.idClient == msgUp.action.idClient && action.counter == msgUp.action.counter
@@ -226,13 +227,13 @@ export class ClientObjects {
 	 * aggiorno il valore "provvisorio" di un OBJECT con tutti i MESSAGES in attesa
 	 * @param idObj id dell'oggetto
 	 */
-	private updateWaitValue(idObj: string) {
+	private updateValueTemp(idObj: string) {
 		// prendo il VALUE attuale per questo OBJECT
 		// [II] ATTENZIONE BISOGNA FARE UN CLONE DEEP
 		const obj = this.objects[idObj]
 		let v = !!obj ? [...obj.value] : this.apply()
 		// tutte i MESSAGES da applicare
-		const msgBuffer = this.waitBuffer.concat(this.buffer.filter(m => m.type == "c:update"))
+		const msgBuffer = this.bufferTemp.concat(this.buffer.filter(m => m.type == "c:update"))
 		// applico solo i MESSAGES di aggiornamento per questo OBJECT
 		const commands = msgBuffer.reduce((acc, msgUp) => {
 			if (msgUp.idObj != idObj) return acc
@@ -241,7 +242,7 @@ export class ClientObjects {
 		}, [] as any[])
 		v = this.apply(v, commands)
 
-		obj.valueWait = v
+		obj.valueTemp = v
 	}
 
 	//#endregion
