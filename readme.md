@@ -5,9 +5,9 @@ A lightweight synchronization system for shared objects between clients and serv
 ## Table of Contents
 - [Core Components](#core-components)
 - [How it Works](#how-it-works)
-- [ESEMPIO LOCALE](#esempio-locale)
-- [ESEMPIO SLATE](#esempio-slate)
-- [LIMITAZIONI](#limitazioni)
+- [LOCAL EXAMPLE](#local-example)
+- [SLATE EXAMPLE](#slate-example)
+- [LIMITATIONS](#limitations)
 
 # Core Components
 
@@ -18,107 +18,107 @@ A lightweight synchronization system for shared objects between clients and serv
 
 ## CLIENT
 
-La classe `ClientObjects` mantiene copie locali degli oggetti   
-e gestisce la comunicazione con il server per sincronizzarli.  
-Tipicamente si utilizza nel browser
+The `ClientObjects` class maintains local copies of objects  
+and manages communication with the server to synchronize them.  
+Typically used in the browser.
 
 ```typescript
-// crea l'oggetto `ClientObjects` per gestire la sincronizzazione lato CLIENT
+// create the `ClientObjects` object to manage synchronization on the CLIENT side
 export const clientObjects = new ClientObjects()
 
-// Imposto la funzione di modifica (in questo caso per un array). 
-// Puoi usare una di defalt o definirne una personalizzata.
-// Applica e aggiorna il `value` di un OBJECT con un ACTION
+// Set the modification function (in this case for an array). 
+// You can use a default one or define a custom one.
+// Applies and updates the `value` of an OBJECT with an ACTION
 clientObjects.apply = ArrayApplicator.ApplyCommands
 
-// Callback di `ClientObjects` eseguita quando bisogna inviare i messaggi al SERVER
-// Puoi usare i WebSocket o qualunque altro metodo di trasporto
+// Callback of `ClientObjects` executed when messages need to be sent to the SERVER
+// You can use WebSockets or any other transport method
 clientObjects.onSend = async (messages: ClientMessage[]) => { 
-	// per esempio con i websocket...
+	// for example with websockets...
 	websocket.send(JSON.stringify(messages))
 }
 
-// Dichiara al SERVER che il CIENT vuole osservare gli aggiornamenti di `myObject`
-// `true` = la richiesta è inviata immediatamente e aspetta la conferma dal SERVER
+// Declare to the SERVER that the CLIENT wants to observe updates of `myObject`
+// `true` = the request is sent immediately and waits for confirmation from the SERVER
 await clientObjects.init('myObject', true)
 
-// memorizza localmente due comandi
+// store two commands locally
 clientObjects.command('myObject', { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
 clientObjects.command('myObject', { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 
-// invia tutti i comandi memorizzati al SERVER per sincronizzare gli OBJECT osservati
-clisntObjects.update()
+// send all stored commands to the SERVER to synchronize the observed OBJECTS
+clientObjects.update()
 
-// prelevo il valore di un OBJECT
+// retrieve the value of an OBJECT
 const myObject = clientObjects.getObject('myObject').value
 
-// e il suo valore TEMPORANEO
+// and its TEMPORARY value
 const myObject = clientObjects.getObject('myObject').valueTemp
 ```
 
 ## SERVER
 
-La classe `ServerObjects`  
-applica agli oggetti sul SERVER le azioni dai CLIENT  
-e invia gli aggiornamenti ai CLIENTs stessi.  
-Tipicamente si utilizza su un server Node.js.  
+The `ServerObjects` class  
+applies actions from CLIENTS to objects on the SERVER  
+and sends updates to the CLIENTS themselves.  
+Typically used on a Node.js server.
 
 ```typescript
-// crea l'oggetto `ServerObjects` per gestire la sincronizzazione lato SERVER
+// create the `ServerObjects` object to manage synchronization on the SERVER side
 export const serverObjects = new ServerObjects()
 
-// Imposto la funzione di modifica (in questo caso per un array).
-// Puoi usare una di defalt o definirne una personalizzata.
-// Applica e aggiorna il `value` di un OBJECT con un ACTION
+// Set the modification function (in this case for an array).
+// You can use a default one or define a custom one.
+// Applies and updates the `value` of an OBJECT with an ACTION
 serverObjects.apply = ArrayApplicator.ApplyCommands
 
-// Callback di `ServerObjects` eseguita quando bisogna inviare i messaggi al CLIENT
-// Puoi usare i WebSocket o qualunque altro metodo di trasporto
-// In questo caso invia i messaggi al CLIENT tramite WebSocket
+// Callback of `ServerObjects` executed when messages need to be sent to the CLIENT
+// You can use WebSockets or any other transport method
+// In this case, send messages to the CLIENT via WebSocket
 server.onSend = async (client: any , message: ServerMessage) => 
 	(<WebSocket>client).send(JSON.stringify(message))
 
-// da chiamare quando il sistema di trasporto scelto riceve un messaggio da un CLIENT
-// per esempio con i WebSockets...
+// to be called when the chosen transport system receives a message from a CLIENT
+// for example with WebSockets...
 wss.on('connection', (ws: WebSocket) => {
 	ws.on('message', (data: string) => server.receive(data.toString(), ws))
-	// quando il CLIENT si disconnette lo rimuovo dai LISTENERs
+	// when the CLIENT disconnects, remove it from the LISTENERS
 	ws.on('close', () => server.disconnect(ws))
 })
 
-//aggiorno tutti i CLIENTs in LISTENER
+// update all CLIENTS in LISTENERS
 server.update()
 ```
 
-# ESEMPIO LOCALE
+# LOCAL EXAMPLE
 
 ```typescript
-// creo CLIENT e SERVER
+// create CLIENT and SERVER
 const server = new ServerObjects()
 const client = new ClientObjects()
 
-// quando il SERVER deve inviare scrivo direttamente sul "receiver" del CLIENT 
+// when the SERVER needs to send, write directly to the CLIENT's "receiver"
 server.onSend = async (client, message) => client.receive(JSON.stringify(message))
-// e il contrario
+// and vice versa
 client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
 
-/** uso un "apply" su array */
+/** use an "apply" on array */
 server.apply = ApplyCommands
 client.apply = ApplyCommands
 
-// impsto i commands localmente
+// set the commands locally
 await client.init("my-object", true)
 client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "first row" })
 client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "second row" })
 client.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 client.command("my-object", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
 
-// situazione prima di sincronizzare
+// situation before synchronizing
 console.log(client.getObject("my-object").value) 		// []
 console.log(client.getObject("my-object").valueTemp) 	// ["first row", "third row"]
 console.log(server.getObject("my-object").value) 		// []
 
-// mando la richiesta di sincronizzare gli OBJECT osservati al SERVER
+// send the request to synchronize the observed OBJECTS to the SERVER
 await client.update()
 // 
 server.update()
@@ -128,35 +128,32 @@ console.log(client.getObject("my-object").valueTemp) 	// ["first row", "third ro
 console.log(server.getObject("my-object").value) 		// ["first row", "third row"]
 ```
 
-# ESEMPIO SLATE
+# SLATE EXAMPLE
 
-Ma la cosa che ci interessa di piu' è farlo funzionare con SLATE per React!  
-E' proprio per quello che è stato creato JESS.  
-Un esempio è dentro questo repository
+But what interests us most is making it work with SLATE for React!  
+That's exactly why JESS was created.  
+An example is inside this repository.
 
-Dalla root del progetto esegui:
+From the project root, run:
 `cd examples/websocket_slate/server`  
 `npm install`  
 `npm run start`  
-Dovrebbe partire un server websocket su `localhost:8080`  
+A websocket server should start on `localhost:8080`
 
-Sempre dalla root del progetto esegui  
+Also from the project root, run:
 `cd examples/websocket_slate/client`  
 `npm install`  
 `npm run dev`  
-Apri il browser all'indirizzo che ti indica il prompt.  
+Open the browser at the address indicated by the prompt.
 
-Duplica piu' volte il tab del browser  
-e prova a scrivere qualcosa.  
-Dopoo il tempo di delay settato  
-si dovrebbero aggiornare tutti i tab del browser.
+Duplicate the browser tab multiple times  
+and try to write something.  
+After the set delay time,  
+all browser tabs should update.
 
-# LIMITAZIONI
+# LIMITATIONS
 
-Questa libreria è in versione ALFA.  
-Non è stata testata in produzione  
-ma deve essere utilizzata per un sistema reale.  
-Quindi a breve verrà ottimizzata e testata.
-
-
-
+This library is in ALPHA version.  
+It has not been tested in production  
+but it is intended to be used for a real system.  
+So it will soon be optimized and tested.
