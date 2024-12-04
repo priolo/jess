@@ -67,10 +67,10 @@ function adjustPoint(editor: Editor, point: Point): Point {
 	const indexMax = editor.children.length -1
 	const indexPoint = point.path[0]
 	if (indexPoint > indexMax) return {
-		offset: editor.children[indexMax]?.children[0]?.text?.length,
+		offset: (editor.children[indexMax] as any)?.children[0]?.text?.length,
 		path: [indexMax, 0]
 	}
-	const textLength = editor.children[indexPoint]?.children[0]?.text?.length
+	const textLength = (editor.children[indexPoint] as any)?.children[0]?.text?.length
 	return {
 		path: point.path,
 		offset: Math.min(point.offset, textLength)
