@@ -1,6 +1,16 @@
-# ESEMPIO CON SLATE
+Jess (JavaScript Easy Sync System) is a lightweight library that enables real-time synchronization of shared objects between clients and a server. While it can be used for any type of collaborative editing, it really shines when integrated with the Slate rich text editor.
 
-## SERVER
+### Core Concepts
+Jess is built around two main classes:
+
+- ClientObjects: Maintains local copies of shared objects on the client side and handles server communication
+- ServerObjects: Manages the authoritative state on the server and broadcasts changes to connected clients
+
+The library uses a command-based approach where clients send commands to modify objects, which are then synchronized across all connected clients.
+
+### Basic Example with Slate Editor
+Let's build a collaborative text editor using Jess and Slate.  
+First, we'll set up the server:
 
 ```typescript
 import { ServerObjects, SlateApplicator } from '@priolo/jess';
@@ -32,31 +42,30 @@ wss.on('connection', (ws) => {
 console.log('WebSocket server is running on ws://localhost:8080')
 ```
 
-## CLIENT
+On the client side, we need to set up the connection and Slate editor:
 
-### CLIENT-OBJECTS E WEB-SOCKET
 ```typescript
 import { ClientObjects, SlateApplicator } from "@priolo/jess"
 
-// creo il repository locale degli oggetti
+// create the local repository of objects
 export const clientObjects = new ClientObjects()
-// a questo repository applico comandi di tipo testuale
+// apply text commands to this repository
 clientObjects.apply = SlateApplicator.ApplyCommands
 
-// creao il socket
+// create the socket
 const socket = new WebSocket(`ws://${window.location.hostname}:${8080}/`);
-// connessione al SERVER: osservo l'oggetto con id = "doc"
+// connection to the SERVER: observe the object with id = "doc"
 socket.onopen = () => clientObjects.init("doc", true)
-// ricezione di un messaggio da SERVER: lo invio al repsitory lcale
+// receiving a message from SERVER: send it to the local repository
 socket.onmessage = (event) => {
 	console.log("received:", event.data)
 	clientObjects.receive(event.data)
 }
 
-// funzione specifica per inviare dei essggi al SERVER (in questo caso uso il WEB SOCKET)
+// specific function to send messages to the SERVER (in this case using the WEB SOCKET)
 clientObjects.onSend = async (messages) => socket.send(JSON.stringify(messages))
 
-// memorizzo dei COMMANDs e li invio quando tutto è calmo
+// store COMMANDs and send them when everything is calm
 let idTimeout: NodeJS.Timeout
 export function sendCommands (command:any) {
 	clientObjects.command("doc", command)
@@ -65,8 +74,8 @@ export function sendCommands (command:any) {
 }
 ```
 
-### APP REACT
-`App.tsx`
+Finally, integrate with Slate in your React component:
+
 ```tsx
 function App() {
 
@@ -110,3 +119,28 @@ function App() {
 
 export default App
 ```
+
+### How It Works
+1) When a user makes changes in Slate, operations are intercepted and sent as commands to the server via Jess
+2) The server applies the commands and broadcasts updates to all connected clients
+3) Clients receive updates and apply them to their local Slate editors
+4) Changes are batched and synchronized with a delay to improve performance
+
+### Try It Out
+You can find a complete working example in the repository. Clone it and run:
+
+```bash
+# Start the server
+cd examples/websocket_slate/server
+npm install
+npm start
+
+# Start the client
+cd examples/websocket_slate/client  
+npm install
+npm run dev
+```
+
+Open multiple browser tabs and start typing - you'll see changes sync across all instances in real-time!
+
+Link to GitHub Repository

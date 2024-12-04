@@ -1,6 +1,10 @@
-# Jess - JavaScript Easy Sync System
+![logo](./docs/logo.png) 
 
-A lightweight synchronization system for shared objects between clients and server.
+## Installation
+
+`npm install @priolo/jess`
+
+Jess (JavaScript Easy Sync System) A lightweight synchronization system for shared objects between clients and server.
 
 ## Table of Contents
 - [Core Components](#core-components)

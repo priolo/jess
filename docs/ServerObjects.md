@@ -1,25 +1,36 @@
+# ServerObjects
 
-### ServerObjects
+The `ServerObjects` class manages the state of server-side OBJECTS and synchronization between multiple CLIENTS.
 
-La classe `ServerObjects` gestisce la gestione dello stato lato server e la sincronizzazione tra più client.
+## Public Methods:
 
-**Metodi Pubblici:**
+### `receive(messageStr: string, client: any): void`
 
-- `receive(messageStr: string, clientInstance: any): void`
-  - Riceve un messaggio da un client e lo elabora.
-    - **Parametri:**
-      - `messageStr`: Messaggio ricevuto dal client in formato stringa.
-      - `clientInstance`: Istanza del client che ha inviato il messaggio.
+Receives a message from a client and processes it.  
+Called by the transport system when it receives a message.
 
-- `update(): void`
-  - Processa gli aggiornamenti e invia le modifiche ai client in ascolto.
+- `messageStr`: Message received from the client in string format.
+- `clientInstance`: Generic instance of the client that sent the message. This will be used in `onSend`.
 
-**Proprietà Pubbliche:**
+### `update(): void`
 
-- `apply: ApplyCommandFunction`
-  - Funzione utilizzata per applicare un comando a un oggetto.
+Sends update changes to listening clients.  
+It will probably call `onSend`.
 
-- `onSend: (client: any, message: ServerMessage) => Promise<any>`
-  - Funzione chiamata per inviare messaggi a un client specifico.
+**Public Properties:**
 
----
+### `apply: (data?: any, command?: any) => any`
+
+Function used to apply a command to an object.  
+Use a predefined function:
+
+- `ArrayApplicator.ApplyCommands`
+- `SlateApplicator.ApplyCommands`
+- `TextApplicator.ApplyCommands`
+
+or define a custom one.
+
+### `onSend: (client: any, message: ServerMessage) => Promise<any>`
+
+Function called to send messages to a client.  
+The implementation depends on the transport method used.

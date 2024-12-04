@@ -1,57 +1,75 @@
+# ClientObjects
 
-### ClientObjects
+The `ClientObjects` class manages client-side synchronization of shared objects.
+It maintains local copies of the objects and handles communication with the server.
 
-La classe `ClientObjects` gestisce la sincronizzazione lato client degli oggetti condivisi.
-Mantiene copie locali degli oggetti e gestisce la comunicazione con il server.
+## Public Methods:
 
-**Metodi Pubblici:**
+### `init(idObj: string, send?: boolean): Promise<void>`
+Initializes the synchronization of an object with the server.  
+The first thing to do!
 
-- `init(idObj: string, send?: boolean): Promise<void>`
-  - Inizializza la sincronizzazione di un oggetto con il server.
-    - **Parametri:**
-      - `idObj`: Identificatore dell'oggetto da sincronizzare.
-      - `send` (opzionale): Se `true`, invia immediatamente la richiesta di inizializzazione al servere e aspetta la risposta.
+- `idObj`: Identifier of the object to synchronize.
+- `send` (optional): If `true`, immediately sends the initialization request to the server and waits for the response.
 
-- `command(idObj: string, command: any): void`
-  - Inserisce in buffer un comando per aggiornare un oggetto.
-    - **Parametri:**
-      - `idObj`: Identificatore dell'oggetto.
-      - `command`: Comando da eseguire.
+#### `command(idObj: string, command: any): void`
 
-- `reset(): Promise<void>`
-  - Reimposta lo stato del client e informa il server degli oggetti osservati e delle loro versioni.
+Buffers a command to update an object.  
+Commands are not sent but only stored.  
+To send them, call `update()`
 
-- `update(): Promise<void>`
-  - Invia tutti i messaggi bufferizzati al server.
+- `idObj`: Identifier of the object.
+- `command`: Command to execute.
 
-- `receive(messageStr: string): void`
-  - Riceve un messaggio dal server e lo elabora.
+#### `reset(): Promise<void>`
 
-- `getObject(idObj: string): ClientObject`
-  - Recupera il proxy di un oggetto sincronizzato.
-    - **Parametri:**
-      - `idObj`: Identificatore dell'oggetto.
-    - **Ritorna:**
-      - `ClientObject`: L'oggetto sincronizzato.
+Informs the SERVER about the objects observed by the CLIENT and their synchronized versions.
 
-- `observe(idObj: string, callback: (data: any) => void): void`
-  - Registra una funzione di callback che viene chiamata quando l'oggetto specificato cambia.
-    - **Parametri:**
-      - `idObj`: Identificatore dell'oggetto da osservare.
-      - `callback`: Funzione da chiamare al cambiamento dell'oggetto.
+#### `update(): Promise<void>`
 
-- `unobserve(idObj: string, callback: (data: any) => void): void`
-  - Rimuove una funzione di callback precedentemente registrata.
-    - **Parametri:**
-      - `idObj`: Identificatore dell'oggetto.
-      - `callback`: Funzione da rimuovere.
+Sends all buffered messages to the server.  
+This will likely call `onSend`.
 
-**Proprietà Pubbliche:**
+#### `receive(messageStr: string): void`
 
-- `apply: ApplyCommandFunction`
-  - Funzione utilizzata per applicare un comando a un oggetto.
+Receives a message from the server.
+Called by the transport system when a message is received.
+- `messageStr`: Message received from the server as a string.
 
-- `onSend: (messages: ClientMessage[]) => Promise<any>`
-  - Funzione chiamata per inviare messaggi al server.
+#### `getObject(idObj: string): ClientObject`
 
----
+Retrieves the proxy of a synchronized object.
+- `idObj`: Identifier of the object.
+
+**Returns:**
+- `ClientObject`: The synchronized object.
+
+#### `observe(idObj: string, callback: (data: any) => void): void`
+
+Registers a callback function that is called when the specified object changes.
+- `idObj`: Identifier of the object to observe.
+- `callback`: Function to call upon the object's change.
+
+#### `unobserve(idObj: string, callback: (data: any) => void): void`
+
+Removes a previously registered callback function.
+- `idObj`: Identifier of the object.
+- `callback`: Function to remove.
+
+## Public Properties:
+
+#### `apply: (data?: any, command?: any) => any`
+
+Function used to apply a command to an object.
+You can use a predefined function:
+
+- `ArrayApplicator.ApplyCommands`
+- `SlateApplicator.ApplyCommands`
+- `TextApplicator.ApplyCommands`
+
+or define a custom one.
+
+#### `onSend: (messages: ClientMessage[]) => Promise<any>`
+
+Function called to send messages to the server.
+The implementation depends on the transport method used.
