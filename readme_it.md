@@ -157,6 +157,3 @@ Questa libreria è in versione ALFA.
 Non è stata testata in produzione  
 ma deve essere utilizzata per un sistema reale.  
 Quindi a breve verrà ottimizzata e testata.
-
-
-
