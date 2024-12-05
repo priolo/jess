@@ -1,4 +1,4 @@
-# EXAMPLE WITH WEB SOCKETS
+# ESEMPIO CON I WEB SOCKET
 
 ## SERVER
 ```typescript
@@ -32,27 +32,27 @@ console.log('WebSocket server is running on ws://localhost:8080')
 
 ## CLIENT
 
-### CLIENT-OBJECTS AND WEB-SOCKET
+### CLIENT-OBJECTS E WEB-SOCKET
 `jessService.ts`
 ```typescript
 import { ClientObjects, TextApplicator } from "@priolo/jess"
 
-// create the local repository of objects
+// creo il repository locale degli oggetti
 export const clientObjects = new ClientObjects()
-// apply textual commands to this repository
+// a questo repository applico comandi di tipo testuale
 clientObjects.apply = TextApplicator.ApplyCommands
 
-// create the socket
+// creo il socket
 const socket = new WebSocket(`ws://${window.location.hostname}:${8080}/`);
-// connection to the SERVER: observe the object with id = "doc"
+// connessione al SERVER: osservo l'oggetto con id = "doc"
 socket.onopen = () => clientObjects.init("doc", true)
-// receiving a message from the SERVER: send it to the local repository
+// ricezione di un messaggio da SERVER: lo invio al repsitory lcale
 socket.onmessage = (event) => clientObjects.receive(event.data)
 
-// specific function to send messages to the SERVER (in this case using the WEB SOCKET)
+// funzione specifica per inviare dei essggi al SERVER (in questo caso uso il WEB SOCKET)
 clientObjects.onSend = async (messages) => socket.send(JSON.stringify(messages))
 
-// store COMMANDs and send them when everything is calm
+// memorizzo dei COMMANDs e li invio quando tutto è calmo
 let idTimeout: NodeJS.Timeout
 export function sendCommands (command:any) {
 	clientObjects.command("doc", command)
@@ -61,7 +61,7 @@ export function sendCommands (command:any) {
 }
 ```
 
-### REACT APP
+### APP REACT
 `App.tsx`
 ```tsx
 import { TextApplicator } from '@priolo/jess';
@@ -71,7 +71,7 @@ import { clientObjects, sendCommands } from './jessService';
 function App() {
 
 	const [text, setText] = useState('')
-	// Optional. Store the selection to prevent the cursor from moving
+	// Opzionale. Memorizzo la selezione per evitare che il cursore si sposti
 	const lastSelection = useRef({ start: 0, end: 0 });
 	const txtRef = useRef<HTMLTextAreaElement>(null);
 

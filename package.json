@@ -1,12 +1,14 @@
 {
-  "name": "jess",
+  "name": "@priolo/jess",
   "version": "0.1.0",
   "keywords": [
     "synchronization",
+    "slate",
     "javascript"
   ],
   "author": "Iorio Ivano <iorioivano@gmail.com>",
   "license": "MIT",
+  "private": false,
   "description": "A lightweight synchronization system for shared objects between clients and server.",
   "repository": {
     "type": "git",

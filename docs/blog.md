@@ -143,4 +143,4 @@ npm run dev
 
 Open multiple browser tabs and start typing - you'll see changes sync across all instances in real-time!
 
-Link to GitHub Repository
+Link to GitHub (Repository)[https://github.com/priolo/jess]

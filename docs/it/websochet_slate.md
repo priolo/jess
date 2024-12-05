@@ -1,4 +1,4 @@
-# EXAMPLE WITH SLATE
+# ESEMPIO CON SLATE
 
 ## SERVER
 
@@ -34,29 +34,29 @@ console.log('WebSocket server is running on ws://localhost:8080')
 
 ## CLIENT
 
-### CLIENT-OBJECTS AND WEB-SOCKET
+### CLIENT-OBJECTS E WEB-SOCKET
 ```typescript
 import { ClientObjects, SlateApplicator } from "@priolo/jess"
 
-// create the local repository of objects
+// creo il repository locale degli oggetti
 export const clientObjects = new ClientObjects()
-// apply text-based commands to this repository
+// a questo repository applico comandi di tipo testuale
 clientObjects.apply = SlateApplicator.ApplyCommands
 
-// create the socket
+// creao il socket
 const socket = new WebSocket(`ws://${window.location.hostname}:${8080}/`);
-// connection to the SERVER: observe the object with id = "doc"
+// connessione al SERVER: osservo l'oggetto con id = "doc"
 socket.onopen = () => clientObjects.init("doc", true)
-// receiving a message from the SERVER: send it to the local repository
+// ricezione di un messaggio da SERVER: lo invio al repsitory lcale
 socket.onmessage = (event) => {
 	console.log("received:", event.data)
 	clientObjects.receive(event.data)
 }
 
-// specific function to send messages to the SERVER (in this case using the WEB SOCKET)
+// funzione specifica per inviare dei essggi al SERVER (in questo caso uso il WEB SOCKET)
 clientObjects.onSend = async (messages) => socket.send(JSON.stringify(messages))
 
-// store COMMANDs and send them when everything is calm
+// memorizzo dei COMMANDs e li invio quando tutto è calmo
 let idTimeout: NodeJS.Timeout
 export function sendCommands (command:any) {
 	clientObjects.command("doc", command)
@@ -74,7 +74,7 @@ function App() {
 		const editor = withHistory(withReact(createEditor()))
 		const { apply } = editor;
 		editor.apply = (operation: Operation) => {
-			 // synchronize everything that is NOT a selection operation
+			// sincronizza tutto quello che NON è un operazione di selezione
 			if (!Operation.isSelectionOperation(operation)) {
 				console.log("operation:", operation)
 				sendCommands(operation)

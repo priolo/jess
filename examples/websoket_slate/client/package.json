@@ -12,7 +12,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@priolo/jess": "file:C:/Users/iorio/Documents/jess",
+    "@priolo/jess": "^0.1.0",
     "slate": "^0.110.2",
     "slate-history": "^0.110.3",
     "slate-react": "^0.111.0"

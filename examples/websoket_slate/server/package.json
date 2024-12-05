@@ -21,7 +21,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@priolo/jess": "file://C:/Users/iorio/Documents/jess",
+    "@priolo/jess": "^0.1.0",
     "ws": "^8.18.0"
   }
 }
