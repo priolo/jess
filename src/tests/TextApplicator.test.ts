@@ -19,7 +19,7 @@ test("ApplyActions base", async () => {
 		{ index: 8, toDelete: 2 },
 	]
 
-	const value = TextApplicator.ApplyActions("", actions)
+	const value = TextApplicator.ApplyCommands("", actions)
 
 	expect(value).toEqual("12Iva345890")
 })
@@ -45,8 +45,8 @@ test("Normalize base", async () => {
 
 	expect(normalized).toEqual(expected)
 
-	const value = TextApplicator.ApplyActions("", actions)
-	const valueNorm = TextApplicator.ApplyActions("", normalized)
+	const value = TextApplicator.ApplyCommands("", actions)
+	const valueNorm = TextApplicator.ApplyCommands("", normalized)
 
 	expect(value).toEqual(valueNorm)
 })

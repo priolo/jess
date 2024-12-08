@@ -1,5 +1,5 @@
 import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
-import { Action, Listener, ServerInitMessage, ServerMessage, ServerObject, ServerUpdateMessage } from "./ServerObjects.types.js"
+import { Action, Listener, ServerInitMessage, ServerMessage, ServerMessageType, ServerObject, ServerUpdateMessage } from "./ServerObjects.types.js"
 import { truncate } from "./utils.js"
 
 
@@ -43,7 +43,7 @@ export class ServerObjects {
 		const firstVersion = object.actions[0].version
 		if (listener.lastVersion < firstVersion && firstVersion > 1) {
 			msg = <ServerInitMessage>{
-				type: "s:init",
+				type: ServerMessageType.INIT,
 				idObj: object.idObj,
 				data: object.value,
 				version: object.version
@@ -56,7 +56,7 @@ export class ServerObjects {
 				return { ...action, command: null }
 			})
 			msg = <ServerUpdateMessage>{
-				type: "s:update",
+				type: ServerMessageType.UPDATE,
 				idObj: object.idObj,
 				actions,
 			}
@@ -152,7 +152,7 @@ export class ServerObjects {
 		const object = this.getObject(message.idObj, client)
 		// invio lo stato iniziale
 		const msg: ServerInitMessage = {
-			type: "s:init",
+			type: ServerMessageType.INIT,
 			idObj: object.idObj,
 			data: object.value,
 			version: object.actions[object.actions.length - 1]?.version ?? 0

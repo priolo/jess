@@ -1,5 +1,5 @@
 import WebSocket, { WebSocketServer } from 'ws';
-import { ApplyActions, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator";
+import { ApplyCommands, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator";
 import { ClientObjects } from "../ClientObjects.js";
 import { ServerObjects } from "../ServerObjects.js";
 import { delay } from "../utils";
@@ -15,7 +15,7 @@ function WSServer(): [ServerObjects, WebSocketServer] {
 
 
 	const server = new ServerObjects()
-	server.apply = ApplyActions
+	server.apply = ApplyCommands
 	server.onSend = async (ws: WebSocket, message) => ws.send(JSON.stringify(message))
 
 	const wss = new WebSocketServer({ port: PORT })
@@ -31,7 +31,7 @@ async function WSClient(cli?: ClientObjects): Promise<[ClientObjects, WebSocket]
 	const ws = new WebSocket('ws://localhost:8080');
 
 	const client = cli ?? new ClientObjects()
-	client.apply = ApplyActions
+	client.apply = ApplyCommands
 	client.onSend = async (message) => ws.send(JSON.stringify(message))
 	ws.on('message', (data: string) => client.receive(data));
 
@@ -162,7 +162,7 @@ test("simula una disconnessione di un CLIENT", async () => {
 test("[II] non riesc a gestire il try in un test JEST! il CIENT inizia offline", async () => {
 	const [server, wss] = WSServer()
 	const client = new ClientObjects()
-	client.apply = ApplyActions
+	client.apply = ApplyCommands
 
 
 	function wrapInit() {

@@ -100,5 +100,48 @@ test("test selector sconfinamento", async () => {
 	]
 
 	console.log(editor.selection)
-	console.log ( editor.end([])) 
+	console.log(editor.end([]))
+})
+
+test("TEST CACELLAZIONE E INSERIMENTO", async () => {
+	const editor = createEditor()
+	editor.children = [
+		{ children: [{ text: "1" }] },
+		{ children: [{ text: "2" }] },
+	]
+
+	editor.apply({
+		"type": "remove_node",
+		"path": [1],
+		"node": {
+			"children": [{ "text": "" }]
+		}
+	})
+	editor.apply({
+		"type": "insert_node",
+		"path": [1],
+		"node": {
+			"children": [{ "text": "pippo" }]
+		}
+	})
+
+	console.log( editor.children)
+})
+
+test("TEST CACELLAZIONE su una path non esistente", async () => {
+	const editor = createEditor()
+	editor.children = [
+		{ children: [{ text: "1" }] },
+		{ children: [{ text: "2" }] },
+	]
+
+	editor.apply({
+		"type": "remove_node",
+		"path": [2],
+		"node": {
+			"children": [{ "text": "" }]
+		}
+	})
+
+	console.log( editor.children)
 })

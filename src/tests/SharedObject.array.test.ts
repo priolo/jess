@@ -1,8 +1,8 @@
+import { ApplyCommands, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
 import { ClientObjects } from "../ClientObjects"
 import { ServerObjects } from "../ServerObjects"
+import { ServerUpdateMessage } from "../ServerObjects.types"
 import { delay } from "../utils"
-import { ApplyCommands, TYPE_ARRAY_COMMAND } from "../applicators/ArrayApplicator"
-import { ServerMessage, ServerUpdateMessage } from "../ServerObjects.types"
 
 
 

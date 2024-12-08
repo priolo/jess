@@ -1,6 +1,6 @@
 import { ClientObjects } from "../ClientObjects.js"
 import { ServerObjects } from "../ServerObjects.js"
-import { ApplyActions } from "../applicators/SlateApplicator.js"
+import { ApplyCommands } from "../applicators/SlateApplicator.js"
 
 
 
@@ -14,11 +14,11 @@ test("send actions", async () => {
 	const myServer = new ServerObjects()
 	const myClient = new ClientObjects()
 
-	myServer.apply = ApplyActions
+	myServer.apply = ApplyCommands
 	myServer.onSend = async (client, message) => {
 		(<ClientObjects>client).receive(JSON.stringify(message))
 	}
-	myClient.apply = ApplyActions
+	myClient.apply = ApplyCommands
 	myClient.onSend = async (message) => {
 		myServer.receive(JSON.stringify(message), myClient)
 	}

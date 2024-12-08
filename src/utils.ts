@@ -25,3 +25,7 @@ export async function getFreePort(): Promise<number> {
 		});
 	})
 }
+
+export function shortUUID() {
+	return (Date.now().toString(36) + Math.floor(Math.random() * 0xFFFF).toString(36)).toLowerCase()
+  }

@@ -1,9 +1,8 @@
-import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientObject, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
+import { ApplyCommandFunction, ClientInitMessage, ClientMessage, ClientMessageType, ClientObject, ClientResetMessage, ClientUpdateMessage } from "./ClientObjects.types.js"
 import { Action, ServerInitMessage, ServerMessage, ServerUpdateMessage } from "./ServerObjects.types.js"
+import { shortUUID } from "./utils.js"
 
 
-
-let idCounter = 0
 
 export class ClientObjects {
 
@@ -18,8 +17,10 @@ export class ClientObjects {
 	*/
 	onSend: (messages: ClientMessage[]) => Promise<any> = null
 
-	/**libreria di BJECTs */
-	private id: string = crypto.randomUUID()
+	
+	/** contatore er rende univoci i messaggi inviati da questo CLIENT-ID  */
+	private static IdCounter = 0
+	private id: string = shortUUID()
 	private objects: { [idObj: string]: ClientObject } = {}
 	private observers: { [idObj: string]: ((data: any) => void)[] } = {}
 	private initResponse: { resolve: () => void, reject: (m: any) => void } | null = null
@@ -65,7 +66,7 @@ export class ClientObjects {
 		this.getObject(idObj)
 		const message: ClientInitMessage = {
 			clientId: this.id,
-			type: "c:init",
+			type: ClientMessageType.INIT,
 			idObj,
 		}
 		this.buffer.push(message)
@@ -82,12 +83,12 @@ export class ClientObjects {
 	 * @param command comando da eseguire
 	 **/
 	command(idObj: string, command: any) {
-		if ( !idObj || command == null) return
+		if (!idObj || command == null) return
 		this.getObject(idObj)
 		const message: ClientUpdateMessage = {
-			type: "c:update",
+			type: ClientMessageType.UPDATE,
 			idObj,
-			action: { idClient: this.id, counter: idCounter++, command }
+			action: { idClient: this.id, counter: ClientObjects.IdCounter++, command }
 		}
 		this.buffer.push(message)
 		this.updateValueTemp(idObj)
@@ -98,7 +99,7 @@ export class ClientObjects {
 	 **/
 	async reset(): Promise<void> {
 		const message: ClientResetMessage = {
-			type: "c:reset",
+			type: ClientMessageType.RESET,
 			clientId: this.id,
 			payload: Object.values(this.objects).map(obj => ({ idObj: obj.idObj, version: obj.version }))
 		}
@@ -125,7 +126,7 @@ export class ClientObjects {
 		}
 
 		// memorizzo i MESSAGES inviati per ricostruire il valore intanto che aspetto la conferma dal server
-		this.bufferTemp.push(...temp.filter(m => m.type == "c:update"));
+		this.bufferTemp.push(...temp.filter(m => m.type == ClientMessageType.UPDATE));
 		const idObjs = temp.map(m => (m as ClientUpdateMessage).idObj);
 		[...new Set(idObjs)].forEach(idObj => this.updateValueTemp(idObj))
 	}
@@ -170,7 +171,7 @@ export class ClientObjects {
 					if (action.idClient != this.id || !!action.command) continue
 					action.command = (this.bufferTemp.find(m => {
 						const msgUp = m as ClientUpdateMessage
-						return m.type == "c:update" && msgUp.idObj == obj.idObj && msgUp.action?.idClient == action.idClient && msgUp.action?.counter == action.counter
+						return m.type == ClientMessageType.UPDATE && msgUp.idObj == obj.idObj && msgUp.action?.idClient == action.idClient && msgUp.action?.counter == action.counter
 					}) as ClientUpdateMessage)?.action?.command
 				}
 
@@ -233,7 +234,7 @@ export class ClientObjects {
 		const obj = this.objects[idObj]
 		let v = !!obj ? [...obj.value] : this.apply()
 		// tutte i MESSAGES da applicare
-		const msgBuffer = this.bufferTemp.concat(this.buffer.filter(m => m.type == "c:update"))
+		const msgBuffer = this.bufferTemp.concat(this.buffer.filter(m => m.type == ClientMessageType.UPDATE))
 		// applico solo i MESSAGES di aggiornamento per questo OBJECT
 		const commands = msgBuffer.reduce((acc, msgUp) => {
 			if (msgUp.idObj != idObj) return acc

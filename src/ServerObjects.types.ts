@@ -46,16 +46,20 @@ export interface Action {
 export type ServerMessage = ServerInitMessage | ServerUpdateMessage
 
 export interface ServerInitMessage {
-	type: "s:init"
+	type: ServerMessageType.INIT
 	idObj: string
 	data: any
 	version: number
 }
 
 export interface ServerUpdateMessage {
-	type: "s:update"
+	type: ServerMessageType.UPDATE
 	idObj: string		
 	actions: Action[]
 }
 
+export enum ServerMessageType {
+	INIT = "s:init",
+	UPDATE = "s:update",
+}
 //#endregion
