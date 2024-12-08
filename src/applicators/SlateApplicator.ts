@@ -15,7 +15,7 @@ export const ApplyCommands: ApplyCommandFunction = (data: Descendant[], commands
 	if (!data || data.length === 0) data = [{ children: [{ text: '' }] }]
 	editor.children = [...data]
 	if (!commands) return editor.children
-	if (!Array.isArray(commands)) commands = [commands]
+	commands = !Array.isArray(commands) ? [commands] : commands.flat(Infinity)
 
 	withoutNormalizing(editor, () => {
 		for (const command of commands) {

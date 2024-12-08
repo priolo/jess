@@ -216,7 +216,14 @@ describe('normalizeBuffActions', () => {
 	})
 
 	it('split_node: verify', () => {
-		const actions: BaseOperation[] = [
+
+		const original = [{ children: [{ text: "pippo inzaghi" }] }]
+		const expected = [
+			{ children: [{ text: "pippo" }] },
+			{ type: "text", children: [{ text: " inzaghi" }] },
+		]
+
+		const actions1: BaseOperation[] = [
 			{
 				"type": "split_node",
 				"path": [0, 0],
@@ -232,16 +239,19 @@ describe('normalizeBuffActions', () => {
 				} as Partial<Node>
 			}
 		]
+		const result1 = SlateApplicator.ApplyCommands(original, actions1)
+		expect(result1).toEqual(expected)
 
-		const original = [{ children: [{ text: "pippo inzaghi" }] }]
-		const expected = [
-			{ children: [{ text: "pippo" }] },
-			{ type: "text", children: [{ text: " inzaghi" }] },
-		]
-
-		const result = SlateApplicator.ApplyCommands(actions, original)
-
-		expect(result).toEqual(expected)
+		// const actions2 = [
+		// 	{
+		// 		"type": "split_node",
+		// 		"path": [0,0],
+		// 		"position": 5,
+		// 		"properties": { "type": "text" }
+		// 	},
+		// ]
+		// const result2 = SlateApplicator.ApplyCommands(original, actions2)
+		// expect(result2).toEqual(expected)
 	})
 
 })
