@@ -1,9 +1,7 @@
 import { ApplyCommandFunction } from "../ClientObjects.types.js";
 
-
-
 /**
- * Applica una serie di COMMANDS ad un array
+ * Applies a series of COMMANDS to an array
  */
 export const ApplyCommands: ApplyCommandFunction = (data, commands) => {
 	if (!data) data = []

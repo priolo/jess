@@ -7,22 +7,22 @@ import { truncate } from "./utils.js"
 export class ServerObjects {
 
 	/**
-	 * modifica un OBJECT tramite un ACTION
+	 * modifies an OBJECT through an ACTION
 	 */
 	apply: ApplyCommandFunction = null
 	/** 
-	 * invia al client un messaggio 
-	 * emette un errore se il messaggio non è stato inviato correttamente
+	 * sends a message to the client
+	 * emits an error if the message was not sent correctly
 	 * */
 	onSend: (client: any, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
 
-	/**libreria di OBJECTs */
+	/** library of OBJECTs */
 	objects: { [idObj: string]: ServerObject } = {}
-	/** buffer minimo di azioni da mantenere */
+	/** minimum buffer of actions to maintain */
 	bufferMin: number = 1000
 
 	/** 
-	 * invia a tutti i CLIENT le ACTIONs mancanti in maniera da sincronizzarli
+	 * sends all missing ACTIONs to all CLIENTS to synchronize them
 	 * */
 	update() {
 		for (const idObj in this.objects) {
@@ -35,11 +35,11 @@ export class ServerObjects {
 	}
 	private updateListener(object: ServerObject, indexlistener: number) {
 		const listener = object.listeners[indexlistener]
-		/** il client è già aggiornato all'ultima versione */
+		/** the client is already updated to the latest version */
 		if (listener.lastVersion == object.version || object.actions.length == 0) return
 
 		let msg: ServerMessage
-		// se il listener è inferiore all'ultima action memorizzata allora mando tutto
+		// if the listener is below the last stored action then send everything
 		const firstVersion = object.actions[0].version
 		if (listener.lastVersion < firstVersion && firstVersion > 1) {
 			msg = <ServerInitMessage>{
@@ -49,7 +49,7 @@ export class ServerObjects {
 				version: object.version
 			}
 		} else {
-			/** tutti gli actions da inviare al listener */
+			/** all actions to send to the listener */
 			let actions = object.actions.filter(action => action.version > listener.lastVersion)
 			actions = actions.map(action => {
 				if (action.idClient != listener.client._jess_id) return action
@@ -61,15 +61,15 @@ export class ServerObjects {
 				actions,
 			}
 		}
-		// invio il messaggio di aggiornamento al client
+		// send the update message to the client
 		this.sendToListener(msg, listener, object.version)
 	}
 
 	/**
-	 * effettivamente invia il messaggio al listener e aggiorna la sua ultima versione
+	 * actually sends the message to the listener and updates its last version
 	 */
 	private async sendToListener(msg: ServerMessage, listener: Listener, lastVersion: number) {
-		// [II] potrebbe fallire perche' se arriva un altro messaggio prima che questo finisca di eseguire allora listener.lastVersion non è piu' quello che era all'inizio
+		// [II] it could fail because if another message arrives before this one finishes executing then listener.lastVersion is no longer what it was at the beginning
 		let oldVersion = listener.lastVersion
 		try {
 			listener.lastVersion = lastVersion
@@ -82,7 +82,7 @@ export class ServerObjects {
 
 	/**
 	 * garbage collection
-	 * elimina azioni che sono sicuramente inviate a tutti i listeners
+	 * deletes actions that have definitely been sent to all listeners
 	 * @param object 
 	 */
 	private gc(object: ServerObject) {
@@ -91,7 +91,7 @@ export class ServerObjects {
 	}
 
 	/** 
-	 * disconnette un client 
+	 * disconnects a client 
 	 **/
 	disconnect(client: any) {
 		for (const idObj in this.objects) {
@@ -103,7 +103,7 @@ export class ServerObjects {
 	}
 
 	/** 
-	 * riceve una serie di messaggi da un client 
+	 * receives a series of messages from a client 
 	 **/
 	receive(messagesStr: string, client: any) {
 		const messages = JSON.parse(messagesStr) as ClientMessage[]
@@ -128,7 +128,7 @@ export class ServerObjects {
 			}
 		}
 
-		// eseguo gli aggiornamenti a blocchi per ogni OBJECT
+		// execute updates in blocks for each OBJECT
 		for (const idObj in groups) {
 			this.execUpdateMessages(idObj, groups[idObj])
 		}
@@ -150,7 +150,7 @@ export class ServerObjects {
 	}
 	private execInitMessage(message: ClientInitMessage, client: any) {
 		const object = this.getObject(message.idObj, client)
-		// invio lo stato iniziale
+		// send the initial state
 		const msg: ServerInitMessage = {
 			type: ServerMessageType.INIT,
 			idObj: object.idObj,
@@ -168,11 +168,11 @@ export class ServerObjects {
 		client._jess_id = message.clientId
 	}
 
-	/** recupera/crea un OBJ (assegno il listener "client") */
+	/** retrieves/creates an OBJ (assigns the listener "client") */
 	private getObject(idObj: string, client: any): ServerObject {
 		let object = this.objects[idObj]
 
-		// se l'oggetto non c'e' lo creo
+		// if the object does not exist, create it
 		if (!object) {
 			object = {
 				idObj,
@@ -183,7 +183,7 @@ export class ServerObjects {
 			}
 			this.objects[idObj] = object
 
-			// se nell'oggetto non c'e' il listener lo aggiungo
+			// if the listener is not in the object, add it
 		} else if (!object.listeners.some(l => l.client == client)) {
 			object.listeners.push({
 				client,

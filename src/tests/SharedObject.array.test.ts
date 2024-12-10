@@ -7,16 +7,16 @@ import { delay } from "../utils"
 
 
 /**
- * Creo un CLIET e un SERVER legati localmente in modo che possano comunicare tra loro
+ * Create a CLIENT and a SERVER locally connected so they can communicate with each other
  */
 function buildClientAndServer() {
 	const server = new ServerObjects()
 	const client = new ClientObjects()
-	/** quando devo inviare al server scrivo direttamente sul "receiver" */
+	/** when I need to send to the server, I write directly to the "receiver" */
 	server.onSend = async (client, message) => client.receive(JSON.stringify(message))
-	/** quando devo inviare al client scrivo direttamente sul "receiver" */
+	/** when I need to send to the client, I write directly to the "receiver" */
 	client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
-	/** uso un "apply" su array */
+	/** use an "apply" on array */
 	server.apply = ApplyCommands
 	client.apply = ApplyCommands
 	return { server, client }
@@ -29,7 +29,7 @@ beforeAll(async () => {
 afterAll(async () => {
 })
 
-test("sincronizzazione di un array tra CLIENT e SERVER", async () => {
+test("synchronization of an array between CLIENT and SERVER", async () => {
 	const { server, client } = buildClientAndServer()
 
 	await client.init("my-object", true)
@@ -66,11 +66,11 @@ test("send actions", async () => {
 	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.REMOVE, index: 1 })
 	myClient.command("my-doc", { type: TYPE_ARRAY_COMMAND.ADD, payload: "third row" })
 
-	// simulo la disconnessione
+	// simulate disconnection
 	myServer.disconnect(myClient)
 	await delay(200)
 
-	// simulo la riconnessione
+	// simulate reconnection
 	myClient.reset()
 	await delay(200)
 	myClient.update()
@@ -132,7 +132,7 @@ test("send actions 2 client", async () => {
 })
 
 
-test("correct recostruction", async () => {
+test("correct reconstruction", async () => {
 	const server = new ServerObjects()
 	server.apply = ApplyCommands
 	server.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
@@ -156,7 +156,7 @@ test("correct recostruction", async () => {
 	expect(client.getObject("my-doc").valueTemp).toEqual(expectedClientTemp)
 })
 
-test("init recostruction", async () => {
+test("init reconstruction", async () => {
 	const client = new ClientObjects()
 	client.apply = ApplyCommands
 	client.onSend = async (message) => {}
@@ -169,7 +169,7 @@ test("init recostruction", async () => {
 })
 
 
-test("ottimizza il send ai client se c'e' solo un intervento", async () => {
+test("optimize send to clients if there is only one intervention", async () => {
 	let serverMsgToSend:ServerUpdateMessage | null = null
 	const server = new ServerObjects()
 	server.apply = ApplyCommands

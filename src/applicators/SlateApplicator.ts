@@ -1,17 +1,15 @@
 import { createEditor, Descendant, Editor, Node, NodeOperation, Operation, Point, SelectionOperation, Transforms, withoutNormalizing } from "slate";
 import { ApplyCommandFunction } from "../ClientObjects.types.js";
 
-
-
 /**
- * Applica uno o piu COMMANDS (srebbero degli OPERATION-SLETE) ad un contenuto CHILDREN-SLATE
+ * Applies one or more COMMANDS (which are SLATE OPERATIONS) to a CHILDREN-SLATE content
  * https://docs.slatejs.org/api/operations
  */
 export const ApplyCommands: ApplyCommandFunction = (data: Descendant[], commands: Operation[]): any => {
 
 	const editor = createEditor()
 
-	// se è vuoto allora devo mettergli un descendant di default
+	// if it's empty then I need to set a default descendant
 	if (!data || data.length === 0) data = [{ children: [{ text: '' }] }]
 	editor.children = [...data]
 	if (!commands) return editor.children
@@ -20,9 +18,8 @@ export const ApplyCommands: ApplyCommandFunction = (data: Descendant[], commands
 	withoutNormalizing(editor, () => {
 		for (const command of commands) {
 
-
 			if (command.type == 'set_selection' && !editor.selection) {
-				// se non c'è una selezione corrente imposta una selezione di default altrimenti da errore
+				// if there is no current selection, set a default selection otherwise it will throw an error
 				editor.setSelection({
 					anchor: { path: [0, 0], offset: 0 },
 					focus: { path: [0, 0], offset: 0 }
@@ -40,7 +37,7 @@ export const ApplyCommands: ApplyCommandFunction = (data: Descendant[], commands
 }
 
 /**
- * Aggiorna il contenuto di un editor con un nuovo array di children
+ * Updates the content of an editor with a new array of children
  */
 export function UpdateChildren(editor: Editor, newChildren: any[]) {
 	Editor.withoutNormalizing(editor, () => {
@@ -60,7 +57,7 @@ export function UpdateChildren(editor: Editor, newChildren: any[]) {
 }
 
 /**
- * mi assicuro che un Point non esca fuori dal contenuto di un Editor
+ * Ensures that a Point does not go out of the content of an Editor
  */
 function adjustPoint(editor: Editor, point: Point): Point {
 	if (!point) return point
@@ -78,7 +75,7 @@ function adjustPoint(editor: Editor, point: Point): Point {
 }
 
 /**
- * Dato un array di OPERATION-SLATE produco una versione semplificata e compatta
+ * Given an array of SLATE OPERATIONS, produces a simplified and compact version
  */
 export function Normalize (actions: Operation[]): Operation[] {
 	if (!actions) return []
@@ -91,7 +88,7 @@ export function Normalize (actions: Operation[]): Operation[] {
 		const lastNorm = normalized[normalized.length - 1]
 
 		switch (action.type) {
-			// se anche il precedente era un "insert_text" allora mergio
+			// if the previous one was also an "insert_text" then merge
 			case "insert_text":
 				if (lastNorm?.type == "insert_text" && action.path[0] == lastNorm?.path?.[0] /*&& action.offset+1 == lastNorm.offset*/) {
 					lastNorm.text += action.text
@@ -99,15 +96,15 @@ export function Normalize (actions: Operation[]): Operation[] {
 				}
 				break
 			
-			// se è una "set_selection" allora la salvo come ultima
+			// if it's a "set_selection" then save it as the last one
 			case "set_selection":
 				indexLastSelection = normalized.length
 				break
 
-			// se anche il precedente era un "remove_text" allora mergio
+			// if the previous one was also a "remove_text" then merge
 			case "remove_text":
 				if (lastNorm?.type == "remove_text" && action.path[0] == prevAction?.path[0] /*&& action.offset+1 == lastNorm.offset*/) {
-					// sto effettuando una cancellazione all'indietro
+					// performing a backward deletion
 					if (action.offset + 1 == prevAction.offset) {
 						lastNorm.offset = action.offset
 						lastNorm.text = action.text + lastNorm.text
@@ -125,7 +122,7 @@ export function Normalize (actions: Operation[]): Operation[] {
 		normalized.push({ ...action })
 	}
 
-	// semplifico le selezioni. mantengo solo l'ultima
+	// simplify selections. keep only the last one
 	if (indexLastSelection != -1) {
 		(<SelectionOperation>normalized[indexLastSelection]).properties = null
 		normalized = normalized.filter((action, index) => action.type != "set_selection" || index == indexLastSelection)

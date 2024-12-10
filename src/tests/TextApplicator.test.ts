@@ -51,7 +51,7 @@ test("Normalize base", async () => {
 	expect(value).toEqual(valueNorm)
 })
 
-test("uguaglianza chi piu' ne ha", async () => {
+test("equality who has more", async () => {
 	const text1 = "pipplon1g"
 	const text2 = "pi123lon1go"
 
@@ -73,7 +73,7 @@ test("uguaglianza chi piu' ne ha", async () => {
 
 })
 
-test("piruli e piruletti", async () => {
+test("piruli and piruletti", async () => {
 	const text1 = "pipplon1g"
 	const text2 = "pi123lon1go"
 

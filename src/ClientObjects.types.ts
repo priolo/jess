@@ -5,7 +5,7 @@ import { Action } from "./ServerObjects.types.js"
 //#region *** DATA ***
 
 /**
- * il proxy locale dell'OBJECT remoto `idObj`
+ * the local proxy of the remote OBJECT `idObj`
  */
 export interface ClientObject {
 	/** identificativo del CLIENT*/
@@ -25,20 +25,20 @@ export interface ClientObject {
 //#region *** MESSAGES ***
 
 /**
- * dice al SERVER che il CLIENT vuole ricevere e osservare un OBJECT
+ * tells the SERVER that the CLIENT wants to receive and observe an OBJECT
  */
 export interface ClientInitMessage {
 	type: ClientMessageType.INIT
-	/** l'id del CLIENT serve per registrarmi sul SEERVER */
+	/** the CLIENT id is used to register on the SERVER */
 	clientId: string
 	/** id dell OBJECT a cui siamo interessati */
 	idObj: string
 }
 
 /** 
- * dice al SERVER a quale versione il CLIENT è arrivato 
- * su tutti gli OBJECTs osservati 
- * Serve quando il client si disconnette e si riconnette
+ * tells the SERVER which version the CLIENT has reached 
+ * on all observed OBJECTs 
+ * Used when the client disconnects and reconnects
  * */
 export interface ClientResetMessage {
 	type: ClientMessageType.RESET
@@ -50,7 +50,7 @@ export interface ClientResetMessage {
 }
 
 /** 
- * dice al SERVER che il CLIENT ha eseguito un comando di aggiornamento su un OBJECT osservato
+ * tells the SERVER that the CLIENT has executed an update command on an observed OBJECT
  * */
 export interface ClientUpdateMessage {
 	type: ClientMessageType.UPDATE
@@ -61,9 +61,9 @@ export interface ClientUpdateMessage {
 export type ClientMessage = ClientInitMessage | ClientUpdateMessage | ClientResetMessage
 
 /**
- * Applica un'ACTION ad un oggetto e restituisce l'oggetto modificato
- * Viene implementata per condividere diversi tipi di dato
- * IMPORTANTE: deve essere implementata in modo che sia possibile chiamarla con parametri nulli (inizializzazione)
+ * Applies an ACTION to an object and returns the modified object
+ * It is implemented to share different types of data
+ * IMPORTANT: it must be implemented so that it can be called with null parameters (initialization)
  */
 export type ApplyCommandFunction = (data?: any, command?: any) => any
 

@@ -5,7 +5,7 @@ import { SlateApplicator } from "../index.js"
 
 describe('normalizeBuffActions', () => {
 
-	it('insert_text: accorpare', () => {
+	it('insert_text: merge', () => {
 		const actions: BaseOperation[] = [
 			{
 				type: "set_selection",
@@ -47,7 +47,7 @@ describe('normalizeBuffActions', () => {
 		expect(children).toEqual(childrenNorm)
 	})
 
-	it('set_selection: solo ultima selezione', () => {
+	it('set_selection: only last selection', () => {
 		const actions: BaseOperation[] = [
 			{
 				type: "set_selection",
@@ -82,7 +82,7 @@ describe('normalizeBuffActions', () => {
 		expect(norm).toMatchObject([{ type: "insert_text" }, { type: "set_selection" }, { type: "insert_text" }])
 	})
 
-	it('remove_text: semplificare in back', () => {
+	it('remove_text: simplify in back', () => {
 		const actions: BaseOperation[] = [
 			{
 				type: "remove_text",
@@ -126,7 +126,7 @@ describe('normalizeBuffActions', () => {
 		expect(children).toEqual(childrenNorm)
 	})
 
-	it('remove_text: semplificare in foward', () => {
+	it('remove_text: simplify in forward', () => {
 		const actions: BaseOperation[] = [
 			{
 				type: "remove_text",
@@ -171,7 +171,7 @@ describe('normalizeBuffActions', () => {
 		expect(children).toEqual(childrenNorm)
 	})
 
-	it('remove_text: semplificare in back and foward', () => {
+	it('remove_text: simplify in back and forward', () => {
 		const actions: BaseOperation[] = [
 			{
 				type: "remove_text",

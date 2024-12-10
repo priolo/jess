@@ -14,7 +14,7 @@ export function truncate(values: any[], minValue: number, minLength: number): an
 }
 
 /**
- * Restituisce una porta random libera
+ * Returns a random free port
  */
 export async function getFreePort(): Promise<number> {
 	return new Promise(res => {

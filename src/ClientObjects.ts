@@ -7,18 +7,18 @@ import { shortUUID } from "./utils.js"
 export class ClientObjects {
 
 	/**
-	 * modifica un OBJECT tramite una serie di ACTIONs
+	 * modifies an OBJECT through a series of ACTIONs
 	 */
 	apply: ApplyCommandFunction = null
 
 	/** 
-	 * invia al server una serie di messaggi
-	 * emette un errore se il messaggio non è stato inviato correttamente
+	 * sends a series of messages to the server
+	 * emits an error if the message was not sent correctly
 	*/
 	onSend: (messages: ClientMessage[]) => Promise<any> = null
 
 	
-	/** contatore er rende univoci i messaggi inviati da questo CLIENT-ID  */
+	/** counter to make the messages sent by this CLIENT-ID unique */
 	private static IdCounter = 0
 	private id: string = shortUUID()
 	private objects: { [idObj: string]: ClientObject } = {}
@@ -32,21 +32,21 @@ export class ClientObjects {
 	//#region OBSERVERS
 
 	/**
-	 * chiamato quando l'oggetto osservato cambia
+	 * called when the observed object changes
 	 */
 	observe(idObj: string, callback: (data: any) => void) {
 		if (!this.observers[idObj]) this.observers[idObj] = []
 		this.observers[idObj].push(callback)
 	}
 	/**
-	 * smette di osservare l'oggetto
+	 * stops observing the object
 	 */
 	unobserve(idObj: string, callback: (data: any) => void) {
 		if (!this.observers[idObj]) return
 		this.observers[idObj] = this.observers[idObj].filter(obs => obs != callback)
 	}
 	/**
-	 * notifica tutti gli osservatori dell'oggetto
+	 * notifies all observers of the object
 	 */
 	private notify(idObj: string, data: any) {
 		this.observers[idObj]?.forEach(obs => obs(data))
@@ -57,12 +57,12 @@ export class ClientObjects {
 
 
 	/** 
-	 * chiede al SERVER di sincronizzare un OGGETTO
-	 * @param idObj id dell'OGGETTO da sincronizzare
-	 * @param update se true invia subito la richiesta al SERVER e aspetta la risposta
+	 * asks the SERVER to synchronize an OBJECT
+	 * @param idObj id of the OBJECT to synchronize
+	 * @param update if true, immediately sends the request to the SERVER and waits for the response
 	 **/
 	async init(idObj: string, send?: boolean): Promise<void> {
-		// se non esiste crea l'oggetto
+		// if it does not exist, create the object
 		this.getObject(idObj)
 		const message: ClientInitMessage = {
 			clientId: this.id,
@@ -70,7 +70,7 @@ export class ClientObjects {
 			idObj,
 		}
 		this.buffer.push(message)
-		// se è da inviare allora preparo la promise e lo invio
+		// if it is to be sent, then prepare the promise and send it
 		if (!send) return
 		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
 		await this.update()
@@ -78,9 +78,9 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * bufferizza un "command" su un OBJECT
-	 * @param idObj id dell'oggetto
-	 * @param command comando da eseguire
+	 * buffers a "command" on an OBJECT
+	 * @param idObj id of the object
+	 * @param command command to execute
 	 **/
 	command(idObj: string, command: any) {
 		if (!idObj || command == null) return
@@ -95,7 +95,7 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * dico al server gli OBJECT osservati e la versione raggiunta
+	 * tells the server the observed OBJECTs and the version reached
 	 **/
 	async reset(): Promise<void> {
 		const message: ClientResetMessage = {
@@ -107,10 +107,10 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * invia al server tutti i MESSAGES bufferizzati
+	 * sends all buffered MESSAGES to the server
 	 * */
 	async update(): Promise<void> {
-		// non ho nulla da mandare...
+		// I have nothing to send...
 		if (this.buffer.length == 0) return
 
 		let temp = this.buffer
@@ -125,21 +125,21 @@ export class ClientObjects {
 			throw error
 		}
 
-		// memorizzo i MESSAGES inviati per ricostruire il valore intanto che aspetto la conferma dal server
+		// store the sent MESSAGES to reconstruct the value while waiting for confirmation from the server
 		this.bufferTemp.push(...temp.filter(m => m.type == ClientMessageType.UPDATE));
 		const idObjs = temp.map(m => (m as ClientUpdateMessage).idObj);
 		[...new Set(idObjs)].forEach(idObj => this.updateValueTemp(idObj))
 	}
 
 	/** 
-	 * riceve un MESSAGE dal SERVER
-	 * @param messageStr messaggio da parsare
+	 * receives a MESSAGE from the SERVER
+	 * @param messageStr message to parse
 	 * */
 	receive(messageStr: string) {
 		const message: ServerMessage = JSON.parse(messageStr)
 		switch (message.type) {
 
-			// risposta alla richiesta di sincronizzazione
+			// response to the synchronization request
 			case "s:init": {
 				const msgInit = message as ServerInitMessage
 				this.objects[msgInit.idObj] = {
@@ -149,24 +149,24 @@ export class ClientObjects {
 					version: msgInit.version,
 				}
 
-				// aggiorno il valore "provvisorio" con il valore reale
+				// update the "temporary" value with the real value
 				this.updateValueTemp(msgInit.idObj)
 
 				this.notify(msgInit.idObj, this.objects[msgInit.idObj].value)
 
-				// eventualmente risolvo la promise di init
+				// possibly resolve the init promise
 				this.initResponse?.resolve()
 				this.initResponse = null
 				break
 			}
 
-			// aggiornamento di un OBJECT
+			// update of an OBJECT
 			case "s:update": {
 				const msgUp = message as ServerUpdateMessage
 				const obj = this.objects[msgUp.idObj]
 				if (!obj) throw new Error("Object not found")
 
-				// nel caso non ci sia command allora cerco di recuperarlo da un messaggio in attesa
+				// if there is no command, try to retrieve it from a pending message
 				for (const action of msgUp.actions) {
 					if (action.idClient != this.id || !!action.command) continue
 					action.command = (this.bufferTemp.find(m => {
@@ -178,7 +178,7 @@ export class ClientObjects {
 				obj.value = this.apply(obj.value, msgUp.actions.map(a => a.command))
 				obj.version = msgUp.actions[msgUp.actions.length - 1].version
 
-				// elimino il MESSAGE tra quelli in attesa
+				// delete the MESSAGE from those pending
 				this.filterBufferTemp(msgUp.idObj, msgUp.actions)
 				this.updateValueTemp(msgUp.idObj)
 
@@ -191,7 +191,7 @@ export class ClientObjects {
 	//#region OBJECT
 
 	/**
-	 * Recupera o crea un OBJECT
+	 * Retrieves or creates an OBJECT
 	 */
 	getObject(idObj: string): ClientObject {
 		let object = this.objects[idObj]
@@ -211,9 +211,9 @@ export class ClientObjects {
 	//#region WAIT BUFFER
 
 	/**
-	 * elimina i messaggi in attesa che sono stati eseguiti
-	 * @param idObj id dell'oggetto
-	 * @param actions azioni applicate
+	 * deletes pending messages that have been executed
+	 * @param idObj id of the object
+	 * @param actions applied actions
 	 */
 	private filterBufferTemp(idObj: string, actions: Action[]) {
 		this.bufferTemp = this.bufferTemp.filter(msgUp => {
@@ -225,17 +225,17 @@ export class ClientObjects {
 	}
 
 	/**
-	 * aggiorno il valore "provvisorio" di un OBJECT con tutti i MESSAGES in attesa
-	 * @param idObj id dell'oggetto
+	 * updates the "temporary" value of an OBJECT with all pending MESSAGES
+	 * @param idObj id of the object
 	 */
 	private updateValueTemp(idObj: string) {
-		// prendo il VALUE attuale per questo OBJECT
-		// [II] ATTENZIONE BISOGNA FARE UN CLONE DEEP
+		// take the current VALUE for this OBJECT
+		// [II] ATTENTION MUST MAKE A DEEP CLONE
 		const obj = this.objects[idObj]
 		let v = !!obj ? [...obj.value] : this.apply()
-		// tutte i MESSAGES da applicare
+		// all MESSAGES to apply
 		const msgBuffer = this.bufferTemp.concat(this.buffer.filter(m => m.type == ClientMessageType.UPDATE))
-		// applico solo i MESSAGES di aggiornamento per questo OBJECT
+		// apply only the update MESSAGES for this OBJECT
 		const commands = msgBuffer.reduce((acc, msgUp) => {
 			if (msgUp.idObj != idObj) return acc
 			acc.push(msgUp.action.command)

@@ -8,7 +8,7 @@ import { SlateApplicator } from "../index.js"
 // afterAll(async () => {
 // })
 
-// test("editazione in un punto non editabile", async () => {
+// test("editing at a non-editable point", async () => {
 
 // 	const actions = [
 // 		{
@@ -49,7 +49,7 @@ import { SlateApplicator } from "../index.js"
 // 	expect(value).toEqual([])
 // })
 
-test("editazione in un punto non editabile2", async () => {
+test("editing at a non-editable point 2", async () => {
 
 	const actions = [
 		{
@@ -83,7 +83,7 @@ test("editazione in un punto non editabile2", async () => {
 	])
 })
 
-test("test selector sconfinamento", async () => {
+test("test selector overflow", async () => {
 	const editor = createEditor()
 	editor.children = [
 		{ children: [{ text: "testo riga uno" }] },
@@ -103,7 +103,7 @@ test("test selector sconfinamento", async () => {
 	console.log(editor.end([]))
 })
 
-test("TEST CACELLAZIONE E INSERIMENTO", async () => {
+test("TEST DELETION AND INSERTION", async () => {
 	const editor = createEditor()
 	editor.children = [
 		{ children: [{ text: "1" }] },
@@ -128,7 +128,7 @@ test("TEST CACELLAZIONE E INSERIMENTO", async () => {
 	console.log( editor.children)
 })
 
-test("TEST CACELLAZIONE su una path non esistente", async () => {
+test("TEST DELETION on a non-existent path", async () => {
 	const editor = createEditor()
 	editor.children = [
 		{ children: [{ text: "1" }] },

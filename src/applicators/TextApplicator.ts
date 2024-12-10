@@ -1,8 +1,6 @@
 import { ApplyCommandFunction } from "../ClientObjects.types.js";
 
-/**
- * Applica una serie di COMMANDS ad una stringa
- */
+// Apply a series of COMMANDS to a string
 export const ApplyCommands: ApplyCommandFunction = (data: string, commands: TextCommand[]) => {
 	if (data == null) data = ""
 	if (!commands || commands.length == 0) return data
@@ -21,6 +19,7 @@ export interface TextCommand {
 	toDelete?: number
 }
 
+// Normalize the commands
 export function Normalize(commands: TextCommand[]): TextCommand[] {
 	const newCommands: TextCommand[] = []
 	let commandPrev: TextCommand = commands[0]
@@ -48,6 +47,9 @@ export function Normalize(commands: TextCommand[]): TextCommand[] {
 }
 
 
+/**
+ * Create a command from a key press
+ */
 export function CommandFromKey (keyCode:string, selectionStart:number, selectopnEnd:number): TextCommand {
 	const range = selectopnEnd - selectionStart
 	const visibleCharacters = /^[a-zA-Z0-9\s.,;:!?(){}[\]'"<>@#$%^&*+=_-]$/
@@ -83,7 +85,7 @@ export function CommandFromKey (keyCode:string, selectionStart:number, selectopn
 
 
 /**
- *  Restituisce una serie di comandi per trasformare text1 in text2
+ * Returns a series of commands to transform text1 into text2
  * @param text1 
  * @param text2 
  * @returns 

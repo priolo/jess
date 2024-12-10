@@ -1,45 +1,42 @@
-
 //#region *** DATA ***
 
 /**
- * l OBJECT `idObj` che il SERVER aggiorna e sincronizza con i CLIENT
+ * The OBJECT `idObj` that the SERVER updates and synchronizes with the CLIENTS
  */
 export interface ServerObject {
 	idObj: string
 	value: any
-	/** tutti i CLIENT in ascolto */
+	/** all CLIENTS listening */
 	listeners: Listener[]
 	actions: Action[]
 	version: number
 }
 
 /**
- * l'ascolto di un CLIENT su un OBJECT
+ * Listening of a CLIENT on an OBJECT
  */
 export interface Listener {
 	client: any
-	/** a che versione di aggiornamento è arrivato il CLIENT */
+	/** the version of the update the CLIENT has reached */
 	lastVersion: number
 }
 
 /**
- * un'azione di aggiornamento per il value di un OBJECT
+ * An update action for the value of an OBJECT
  */
 export interface Action {
 	idClient: string
-	/** insieme all' `idClient` permette di identificare la action*/
+	/** together with `idClient` allows identifying the action */
 	counter: number
-	/** qaulsiasi comando che permetta l'aggiornamento */
+	/** any command that allows the update */
 	command: any
-	/** l'ordine in cui è memorizzato il COMMAND nel SERVER 
-	 * cioe' questo aggiornamento porta l'oggetto a che versione 
+	/** the order in which the COMMAND is stored on the SERVER
+	 * that is, this update brings the object to which version
 	 **/
 	version?: number
 }
 
 //#endregion
-
-
 
 //#region *** MESSAGES ***
 
