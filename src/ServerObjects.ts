@@ -102,11 +102,7 @@ export class ServerObjects {
 		}
 	}
 
-	/** 
-	 * receives a series of messages from a client 
-	 **/
-	receive(messagesStr: string, client: any) {
-		const messages = JSON.parse(messagesStr) as ClientMessage[]
+	receiveMessages(messages: ClientMessage[], client: any) {
 		const groups: { [idObj: string]: ClientUpdateMessage[] } = {}
 
 		for (const message of messages) {
@@ -133,6 +129,15 @@ export class ServerObjects {
 			this.execUpdateMessages(idObj, groups[idObj])
 		}
 	}
+
+	/** 
+	 * receives a series of messages from a client 
+	 **/
+	receive(messagesStr: string, client: any) {
+		const messages = JSON.parse(messagesStr) as ClientMessage[]
+		this.receiveMessages(messages, client)
+	}
+	
 	private execUpdateMessages(idObj: string, messages: ClientUpdateMessage[]) {
 		const object = this.objects[idObj]
 		if (!object) return
