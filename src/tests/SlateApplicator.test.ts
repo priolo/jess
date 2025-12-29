@@ -99,8 +99,8 @@ test("test selector overflow", async () => {
 		{ children: [{ text: "testo riga uno" }] },
 	]
 
-	console.log(editor.selection)
-	console.log(editor.end([]))
+	// console.log(editor.selection)
+	// console.log(editor.end([]))
 })
 
 test("TEST DELETION AND INSERTION", async () => {
@@ -125,7 +125,7 @@ test("TEST DELETION AND INSERTION", async () => {
 		}
 	})
 
-	console.log( editor.children)
+	// console.log( editor.children)
 })
 
 test("TEST DELETION on a non-existent path", async () => {
@@ -143,5 +143,5 @@ test("TEST DELETION on a non-existent path", async () => {
 		}
 	})
 
-	console.log( editor.children)
+	// console.log( editor.children)
 })

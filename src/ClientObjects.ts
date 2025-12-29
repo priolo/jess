@@ -73,7 +73,9 @@ export class ClientObjects {
 		// if it is to be sent, then prepare the promise and send it
 		if (!send) return
 		const promise = new Promise<void>((resolve, reject) => this.initResponse = { resolve, reject })
-		await this.update()
+		try {
+			await this.update()
+		} catch (e) { }
 		return promise
 	}
 

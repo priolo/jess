@@ -100,7 +100,6 @@ export function DiffText(text1: string, text2: string): any[] {
 
 		const [io1, io2, l] = getEq(text1, text2, i1, i2)
 
-		console.log(io1, io2, l)
 		diffs.push({ io1, io2, l })
 		if (io1 >= text1.length) {
 			break

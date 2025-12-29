@@ -56,19 +56,15 @@ test("equality who has more", async () => {
 	const text2 = "pi123lon1go"
 
 	let diff = getEq(text1, text2, 0, 0)
-	console.log(diff)
 	// 2,2,2
 
 	diff = getEq(text1, text2, 2, 2)
-	console.log(diff)
 	// 2, 11, 0
 
 	diff = getEq(text1, text2, 3, 2)
-	console.log(diff)
 	// 3, 11, 0
 
 	diff = getEq(text1, text2, 4, 2)
-	console.log(diff)
 	// 9, 10, 5
 
 })
@@ -78,7 +74,6 @@ test("piruli and piruletti", async () => {
 	const text2 = "pi123lon1go"
 
 	let diffs = DiffText(text1, text2)
-	console.log(diffs)
 	// 2,2,2
 	const expected = [
 		{ io1: 2, io2: 2, l: 2, },

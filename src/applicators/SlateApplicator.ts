@@ -74,58 +74,67 @@ function adjustPoint(editor: Editor, point: Point): Point {
 	}
 }
 
+function isPathEqual(path1: number[], path2: number[]) {
+    if (!path1 || !path2) return false;
+    if (path1.length !== path2.length) return false;
+    for (let i = 0; i < path1.length; i++) {
+        if (path1[i] !== path2[i]) return false;
+    }
+    return true;
+}
+
 /**
  * Given an array of SLATE OPERATIONS, produces a simplified and compact version
  */
 export function Normalize (actions: Operation[]): Operation[] {
-	if (!actions) return []
-	let normalized:Operation[] = []
-	let indexLastSelection = -1
+	if (!actions || actions.length === 0) return []
 
-	for (let index = 0; index < actions.length; index++) {
-		const action = actions[index]
-		const prevAction: any = actions[index - 1]
+	// Filter out selections, but keep the last one
+	const lastSelection = actions.reduce((last, action) => action.type === 'set_selection' ? action : last, null as Operation | null);
+	const contentActions = actions.filter(action => action.type !== 'set_selection');
+
+	let normalized:Operation[] = []
+
+	for (let index = 0; index < contentActions.length; index++) {
+		const action = contentActions[index]
+		const prevAction: any = contentActions[index - 1]
 		const lastNorm = normalized[normalized.length - 1]
 
 		switch (action.type) {
 			// if the previous one was also an "insert_text" then merge
 			case "insert_text":
-				if (lastNorm?.type == "insert_text" && action.path[0] == lastNorm?.path?.[0] /*&& action.offset+1 == lastNorm.offset*/) {
+				if (lastNorm?.type == "insert_text" && 
+					isPathEqual(action.path, lastNorm.path) && 
+					action.offset === lastNorm.offset + lastNorm.text.length) {
 					lastNorm.text += action.text
 					continue
 				}
 				break
-			
-			// if it's a "set_selection" then save it as the last one
-			case "set_selection":
-				indexLastSelection = normalized.length
-				break
 
 			// if the previous one was also a "remove_text" then merge
 			case "remove_text":
-				if (lastNorm?.type == "remove_text" && action.path[0] == prevAction?.path[0] /*&& action.offset+1 == lastNorm.offset*/) {
+				if (lastNorm?.type == "remove_text" && isPathEqual(action.path, prevAction?.path)) {
 					// performing a backward deletion
 					if (action.offset + 1 == prevAction.offset) {
 						lastNorm.offset = action.offset
 						lastNorm.text = action.text + lastNorm.text
 						continue
 					}
+					// performing a forward deletion
 					if (action.offset == prevAction.offset) {
 						lastNorm.text = lastNorm.text + action.text
 						continue
 					}
 				}
-
 				break
 		}
 
 		normalized.push({ ...action })
 	}
 
-	// simplify selections. keep only the last one
-	if (indexLastSelection != -1) {
-		(<SelectionOperation>normalized[indexLastSelection]).properties = null
-		normalized = normalized.filter((action, index) => action.type != "set_selection" || index == indexLastSelection)
+	if (lastSelection) {
+		(<SelectionOperation>lastSelection).properties = null
+		normalized.push({ ...lastSelection })
 	}
 
 	return normalized

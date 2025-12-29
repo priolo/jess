@@ -1,4 +1,4 @@
-import { BaseOperation } from 'slate';
+import { BaseOperation, Node } from 'slate';
 import { SlateApplicator } from "../index.js"
 
 
@@ -32,17 +32,17 @@ describe('normalizeBuffActions', () => {
 			}
 		]
 
-		const children = SlateApplicator.ApplyCommands(actions, [
+		const children = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], actions)
 		const norm = SlateApplicator.Normalize(actions)
-		const childrenNorm = SlateApplicator.ApplyCommands(norm, [
+		const childrenNorm = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], norm)
 
 		expect(children).toEqual(childrenNorm)
 	})
@@ -79,7 +79,7 @@ describe('normalizeBuffActions', () => {
 		]
 		const norm = SlateApplicator.Normalize(actions)
 
-		expect(norm).toMatchObject([{ type: "insert_text" }, { type: "set_selection" }, { type: "insert_text" }])
+		expect(norm).toMatchObject([{ type: "insert_text", text: "xy" }, { type: "set_selection" }])
 	})
 
 	it('remove_text: simplify in back', () => {
@@ -110,17 +110,17 @@ describe('normalizeBuffActions', () => {
 			}
 		]
 
-		const children = SlateApplicator.ApplyCommands(actions, [
+		const children = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], actions)
 		const norm = SlateApplicator.Normalize(actions)
-		const childrenNorm = SlateApplicator.ApplyCommands(norm, [
+		const childrenNorm = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], norm)
 
 		expect(norm).toHaveLength(1)
 		expect(children).toEqual(childrenNorm)
@@ -154,17 +154,17 @@ describe('normalizeBuffActions', () => {
 			}
 		]
 
-		const children = SlateApplicator.ApplyCommands(actions, [
+		const children = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], actions)
 		const norm = SlateApplicator.Normalize(actions)
-		const childrenNorm = SlateApplicator.ApplyCommands(norm, [
+		const childrenNorm = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], norm)
 
 
 		expect(norm).toHaveLength(1)
@@ -199,17 +199,17 @@ describe('normalizeBuffActions', () => {
 			}
 		]
 
-		const children = SlateApplicator.ApplyCommands(actions, [
+		const children = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], actions)
 		const norm = SlateApplicator.Normalize(actions)
-		const childrenNorm = SlateApplicator.ApplyCommands(norm, [
+		const childrenNorm = SlateApplicator.ApplyCommands([
 			{ children: [{ text: "prima riga molto lunga e appetitosa" }], },
 			{ children: [{ text: "secondariga" }], },
 			{ children: [{ text: "terza riga" }], },
-		])
+		], norm)
 
 		expect(norm).toHaveLength(1)
 		expect(children).toEqual(childrenNorm)
