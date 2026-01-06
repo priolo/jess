@@ -9,6 +9,8 @@ Jess (JavaScript Easy Sync System) A lightweight synchronization system for shar
 ## Table of Contents
 - [Core Components](#core-components)
 - [How it Works](#how-it-works)
+	- [CLIENT](#client)
+	- [SERVER](#server)
 - [LOCAL EXAMPLE](#local-example)
 - [SLATE EXAMPLE](#slate-example)
 - [LIMITATIONS](#limitations)
@@ -124,7 +126,7 @@ console.log(server.getObject("my-object").value) 		// []
 
 // send the request to synchronize the observed OBJECTS to the SERVER
 await client.update()
-// 
+// il server aggiorna tutti i client a lui connessi
 server.update()
 
 console.log(client.getObject("my-object").value) 		// ["first row", "third row"]
