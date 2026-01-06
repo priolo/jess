@@ -8,9 +8,12 @@ export const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 /**
  * Truncate an array of values, keeping only the values that are greater than or equal to `minValue` or the last `minLength` values.
  */
-export function truncate(values: any[], minValue: number, minLength: number): any[] {
-    const length = values.length;
-    return values.filter((v, i) => (length - i) <= minLength || v >= minValue);
+export function truncate<T>(values: T[], minValue: number, minLength: number, selector?: (item: T) => number): T[] {
+	const length = values.length;
+	return values.filter((v, i) => {
+		const val = selector ? selector(v) : (v as any);
+		return (length - i) <= minLength || val >= minValue
+	});
 }
 
 /**
@@ -28,4 +31,4 @@ export async function getFreePort(): Promise<number> {
 
 export function shortUUID() {
 	return (Date.now().toString(36) + Math.floor(Math.random() * 0xFFFF).toString(36)).toLowerCase()
-  }
+}

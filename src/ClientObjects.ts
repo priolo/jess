@@ -12,12 +12,14 @@ export class ClientObjects {
 	apply: ApplyCommandFunction = null
 
 	/** 
-	 * sends a series of messages to the server
-	 * emits an error if the message was not sent correctly
-	*/
+	 * Sends a series of messages to the server.
+	 * YOU MUST IMPLEMENT THIS.
+	 * @example
+	 * client.onSend = async (msgs) => socket.send(JSON.stringify(msgs));
+	 */
 	onSend: (messages: ClientMessage[]) => Promise<any> = null
 
-	
+
 	/** counter to make the messages sent by this CLIENT-ID unique */
 	private static IdCounter = 0
 	private id: string = shortUUID()
@@ -57,10 +59,11 @@ export class ClientObjects {
 
 
 	/** 
-	 * asks the SERVER to synchronize an OBJECT
-	 * @param idObj id of the OBJECT to synchronize
-	 * @param update if true, immediately sends the request to the SERVER and waits for the response
-	 **/
+	 * Initializes synchronization for an object.
+	 * @param idObj The unique ID of the object to synchronize.
+	 * @param send If true, sends the INIT request to the server immediately.
+	 * @returns A promise that resolves when the server responds (if send is true).
+	 */
 	async init(idObj: string, send?: boolean): Promise<void> {
 		// if it does not exist, create the object
 		this.getObject(idObj)
@@ -80,10 +83,11 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * buffers a "command" on an OBJECT
-	 * @param idObj id of the object
-	 * @param command command to execute
-	 **/
+	 * Queues a command (action) to be executed on an object.
+	 * The command is applied optimistically to the local temporary state.
+	 * @param idObj The ID of the object.
+	 * @param command The domain-specific command to execute (e.g. { type: 'INSERT', text: 'a' }).
+	 */
 	command(idObj: string, command: any) {
 		if (!idObj || command == null) return
 		this.getObject(idObj)
@@ -109,8 +113,9 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * sends all buffered MESSAGES to the server
-	 * */
+	 * Sends all buffered commands to the server.
+	 * Call this periodically or after significant user actions to sync changes.
+	 */
 	async update(): Promise<void> {
 		// I have nothing to send...
 		if (this.buffer.length == 0) return
@@ -134,9 +139,9 @@ export class ClientObjects {
 	}
 
 	/** 
-	 * receives a MESSAGE from the SERVER
-	 * @param messageStr message to parse
-	 * */
+	 * Processes a raw message string received from the server.
+	 * @param messageStr The JSON string received from the server.
+	 */
 	receive(messageStr: string) {
 		const message: ServerMessage = JSON.parse(messageStr)
 		switch (message.type) {
@@ -232,18 +237,26 @@ export class ClientObjects {
 	 */
 	private updateValueTemp(idObj: string) {
 		// take the current VALUE for this OBJECT
-		// [II] ATTENTION MUST MAKE A DEEP CLONE
+		// [II] ATTENTION MUST MAKE A DEEP CLONE? If apply is pure (like immer or slate operations producing new state), maybe not needed to deep clone everything, but we need a starting point.
+		// For now keeping it but adding a comment that this depends on the data type.
 		const obj = this.objects[idObj]
-		let v = !!obj ? [...obj.value] : this.apply()
+		// If value is array (like Slate), we clone the array shell.
+		let v = !!obj ? (Array.isArray(obj.value) ? [...obj.value] : { ...obj.value }) : this.apply()
+
 		// all MESSAGES to apply
 		const msgBuffer = this.bufferTemp.concat(this.buffer.filter(m => m.type == ClientMessageType.UPDATE))
+
 		// apply only the update MESSAGES for this OBJECT
 		const commands = msgBuffer.reduce((acc, msgUp) => {
 			if (msgUp.idObj != idObj) return acc
 			acc.push(msgUp.action.command)
 			return acc
 		}, [] as any[])
-		v = this.apply(v, commands)
+
+		// Optimization: if no commands, don't apply
+		if (commands.length > 0) {
+			v = this.apply(v, commands)
+		}
 
 		obj.valueTemp = v
 	}

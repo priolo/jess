@@ -11,10 +11,12 @@ export class ServerObjects {
 	 */
 	apply: ApplyCommandFunction = null
 	/** 
-	 * sends a message to the client
-	 * emits an error if the message was not sent correctly
-	 * */
-	onSend: (client: any, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
+	 * Sends a message to a specific client.
+	 * YOU MUST IMPLEMENT THIS.
+	 * @example
+	 * server.onSend = async (client, msg) => client.send(JSON.stringify(msg));
+	 */
+	onSend: (client: WebSocket, message: ServerUpdateMessage | ServerInitMessage) => Promise<void> = null
 
 	/** library of OBJECTs */
 	objects: { [idObj: string]: ServerObject } = {}
@@ -22,13 +24,15 @@ export class ServerObjects {
 	bufferMin: number = 1000
 
 	/** 
-	 * sends all missing ACTIONs to all CLIENTS to synchronize them
-	 * */
+	 * Broadcasts updates to all clients.
+	 * Checks for new actions for each object and sends them to listening clients.
+	 * Also acts as a heartbeat for Garbage Collection.
+	 */
 	update() {
 		for (const idObj in this.objects) {
 			const object = this.objects[idObj]
-			for (let lstIndex = 0; lstIndex < object.listeners.length; lstIndex++) {
-				this.updateListener(object, lstIndex)
+			for (let i = 0; i < object.listeners.length; i++) {
+				this.updateListener(object, i)
 			}
 			this.gc(object)
 		}
@@ -70,7 +74,7 @@ export class ServerObjects {
 	 */
 	private async sendToListener(msg: ServerMessage, listener: Listener, lastVersion: number) {
 		// [II] it could fail because if another message arrives before this one finishes executing then listener.lastVersion is no longer what it was at the beginning
-		let oldVersion = listener.lastVersion
+		const oldVersion = listener.lastVersion
 		try {
 			listener.lastVersion = lastVersion
 			await this?.onSend(listener.client, msg)
@@ -86,8 +90,12 @@ export class ServerObjects {
 	 * @param object 
 	 */
 	private gc(object: ServerObject) {
+		if (object.actions.length <= this.bufferMin) return
 		const minVersion = object.listeners.reduce((min, l) => Math.min(min, l.lastVersion), Infinity)
-		object.actions = truncate(object.actions, minVersion, this.bufferMin)
+		// we can't remove actions that haven't been sent to all listeners yet
+		if (minVersion === Infinity) return
+
+		object.actions = truncate(object.actions, minVersion, this.bufferMin, a => a.version)
 	}
 
 	/** 
@@ -131,13 +139,15 @@ export class ServerObjects {
 	}
 
 	/** 
-	 * receives a series of messages from a client 
-	 **/
+	 * Processes a raw message string received from a client.
+	 * @param messagesStr The JSON string received (array of ClientMessage).
+	 * @param client The client reference/object associated with this message (e.g. WebSocket instance).
+	 */
 	receive(messagesStr: string, client: any) {
 		const messages = JSON.parse(messagesStr) as ClientMessage[]
 		this.receiveMessages(messages, client)
 	}
-	
+
 	private execUpdateMessages(idObj: string, messages: ClientUpdateMessage[]) {
 		const object = this.objects[idObj]
 		if (!object) return
