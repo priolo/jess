@@ -52,6 +52,8 @@ client.command("my-list", { type: "ADD", payload: "Item 2" });
 
 console.log("Client (Temporary):", client.getObject("my-list").valueTemp); 
 // Output: ["Item 1", "Item 2"]
+console.log("Client (Current):", client.getObject("my-list").value); 
+// Output: []
 
 // 6. Sync
 // Client sends changes to Server
