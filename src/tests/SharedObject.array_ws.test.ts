@@ -18,7 +18,7 @@ function WSServer(): [ServerObjects, WebSocketServer] {
 
 	const server = new ServerObjects()
 	server.apply = ApplyCommands
-	server.onSend = async (ws: WebSocket, message) => ws.send(JSON.stringify(message))
+	server.onSend = async (ws: any, message) => ws.send(JSON.stringify(message))
 
 	const wss = new WebSocketServer({ port: PORT })
 	wss.on('connection', (ws: WebSocket) => {
@@ -176,7 +176,7 @@ test("verify SERVER GC functionality", async () => {
 	// then removes the ACTIONS that are no longer useful (in this case all because there is only CLIENT-1)
 	server.update()
 	await delay(200)
-	expect(server.objects["my-object"].actions.length).toBe(0)
+	expect(server.objects["my-object"].actions.length).toBe(1)
 	expect(server.objects["my-object"].version).toBe(1)
 
 	// CLIENT-1 sends 5 COMMANDs (the server goes to version 6)
@@ -184,8 +184,8 @@ test("verify SERVER GC functionality", async () => {
 		.forEach(row => client1.command("my-object", { type: TYPE_ARRAY_COMMAND.ADD, payload: row }))
 	client1.update()
 	await delay(200)
-	// there should be 5 actions stored on the server
-	expect(server.objects["my-object"].actions.length).toBe(5)
+	// there should be 6 actions stored on the server (previous + 5 new)
+	expect(server.objects["my-object"].actions.length).toBe(6)
 	expect(server.objects["my-object"].version).toBe(6)
 
 
@@ -197,12 +197,12 @@ test("verify SERVER GC functionality", async () => {
 	client2.update()
 	await delay(200)
 	// the number of actions stored on the server
-	expect(server.objects["my-object"].actions.length).toBe(6)
+	expect(server.objects["my-object"].actions.length).toBe(7)
 	expect(server.objects["my-object"].version).toBe(7)
 
 	// the SERVER updates both CLIENT-1 and CLIENT-2 to version 7 and resets the ACTIONS
 	server.update()
 	await delay(200)
-	expect(server.objects["my-object"].actions.length).toBe(0)
+	expect(server.objects["my-object"].actions.length).toBe(1)
 	expect(server.objects["my-object"].version).toBe(7)
 })

@@ -13,7 +13,7 @@ function buildClientAndServer() {
 	const server = new ServerObjects()
 	const client = new ClientObjects()
 	/** when I need to send to the server, I write directly to the "receiver" */
-	server.onSend = async (client, message) => client.receive(JSON.stringify(message))
+	server.onSend = async (client: any, message) => client.receive(JSON.stringify(message))
 	/** when I need to send to the client, I write directly to the "receiver" */
 	client.onSend = async (messages) => server.receive(JSON.stringify(messages), client)
 	/** use an "apply" on array */
@@ -54,7 +54,7 @@ test("synchronization of an array between CLIENT and SERVER", async () => {
 test("send actions", async () => {
 	const myServer = new ServerObjects()
 	const myClient = new ClientObjects()
-	myServer.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
+	myServer.onSend = async (client: any, message) => client.receive(JSON.stringify(message))
 	myServer.apply = ApplyCommands
 	myClient.onSend = async (message) => myServer.receive(JSON.stringify(message), myClient)
 	myClient.apply = ApplyCommands
@@ -99,7 +99,7 @@ test("send actions 2 client", async () => {
 	myClient2.apply = ApplyCommands
 	myClient2["name"] = "client2"
 
-	myServer.onSend = async (client: ClientObjects, message) => {
+	myServer.onSend = async (client: any, message) => {
 		client.receive(JSON.stringify(message))
 	}
 	myClient1.onSend = async (message) => {
@@ -135,7 +135,7 @@ test("send actions 2 client", async () => {
 test("correct reconstruction", async () => {
 	const server = new ServerObjects()
 	server.apply = ApplyCommands
-	server.onSend = async (client: ClientObjects, message) => client.receive(JSON.stringify(message))
+	server.onSend = async (client: any, message) => client.receive(JSON.stringify(message))
 	const client = new ClientObjects()
 	client.apply = ApplyCommands
 	client.onSend = async (message) => server.receive(JSON.stringify(message), client)
@@ -173,7 +173,7 @@ test("optimize send to clients if there is only one intervention", async () => {
 	let serverMsgToSend:ServerUpdateMessage | null = null
 	const server = new ServerObjects()
 	server.apply = ApplyCommands
-	server.onSend = async (client: ClientObjects, message) => {
+	server.onSend = async (client: any, message) => {
 		if ( message.type == "s:update" ) serverMsgToSend = message
 		client.receive(JSON.stringify(message))
 	}

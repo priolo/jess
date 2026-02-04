@@ -15,8 +15,8 @@ test("send actions", async () => {
 	const myClient = new ClientObjects()
 
 	myServer.apply = ApplyCommands
-	myServer.onSend = async (client, message) => {
-		(<ClientObjects>client).receive(JSON.stringify(message))
+	myServer.onSend = async (client: any, message) => {
+		(client as ClientObjects).receive(JSON.stringify(message))
 	}
 	myClient.apply = ApplyCommands
 	myClient.onSend = async (message) => {
@@ -45,4 +45,3 @@ test("send actions", async () => {
 	expect(myServer.objects["my-doc"].value).toEqual(expected)
 	expect(myClient.getObject("my-doc").value).toEqual(expected)
 })
-

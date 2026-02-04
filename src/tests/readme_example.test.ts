@@ -10,7 +10,7 @@ describe('Readme Example', () => {
         const client = new ClientObjects()
 
         // when the SERVER needs to send, write directly to the CLIENT's "receiver"
-        server.onSend = async (client, message) => {
+        server.onSend = async (client: any, message) => {
 			console.log( "SERVER SENT:", message );
 			client.receive(JSON.stringify(message))
 		}
