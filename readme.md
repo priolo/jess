@@ -2,16 +2,15 @@
 
 # JESS (JavaScript Easy Sync System)
 
-**JESS** is a lightweight, framework-agnostic library for synchronizing shared objects between clients and a server. It creates a seamless real-time experience by managing state distribution, updates, and conflict resolution efficiently.
+**JESS** is a lightweight, framework-agnostic library for synchronizing shared objects between clients and a server. It manages state distribution, optimistic updates, and conflict resolution so real-time apps stay responsive and consistent.
 
 ## Features
 
--   **Agnostic**: Works with any transport layer (WebSocket, HTTP polling, etc.) and any data structure (Arrays, Objects, Text, SlateJS).
--   **Optimized**: Efficient delta updates and garbage collection to minimize bandwidth and memory usage.
--   **Conflict Resolution**: Built-in mechanisms to handle concurrent updates.
--   **Plug & Play**: Easy integration with existing projects.
-
----
+- **Transport-agnostic**: Works with WebSocket, HTTP polling, or any custom transport.
+- **Data-agnostic**: Arrays, objects, plain text, and SlateJS structures.
+- **Optimized**: Delta updates plus garbage collection to reduce bandwidth and memory.
+- **Conflict-aware**: Built-in ordering and reconciliation of concurrent updates.
+- **Plug & play**: Drop into existing apps with minimal integration.
 
 ## Installation
 
@@ -19,130 +18,148 @@
 npm install @priolo/jess
 ```
 
----
+## How It Works (Operating Method)
 
-## Quick Start
+JESS separates **sync** from **domain logic**:
 
-Here is a minimal example of how to set up JESS locally (client and server in the same process) to understand the flow.
+- You describe changes as commands.
+- An applicator applies those commands to data.
+- The client keeps a temporary optimistic state.
+- The server is the authoritative source of truth.
+
+Flow overview:
+
+1. A client issues a `command(...)`.
+2. The client immediately updates `valueTemp` for UI responsiveness.
+3. Buffered commands are sent with `client.update()`.
+4. The server applies commands to `value` and assigns versions.
+5. The server broadcasts accepted commands.
+6. Clients reconcile and update `value`, then re-derive `valueTemp`.
+
+## Quick Start (Single Process Demo)
+
+This example wires client and server together directly so the flow is easy to see.
 
 ```typescript
 import { ClientObjects, ServerObjects, ArrayApplicator } from "@priolo/jess";
 
-// 1. Create Server and Client instances
 const server = new ServerObjects();
 const client = new ClientObjects();
 
-// 2. Define the "transport layer" (connecting them directly for this demo)
+// Transport: direct in-memory bridge for this demo.
 server.onSend = async (clientRef, message) => client.receive(JSON.stringify(message));
 client.onSend = async (messages) => server.receive(JSON.stringify(messages), client);
 
-// 3. Define the applicator (how to apply changes to the data)
-// JESS comes with deep diffing for arrays and objects, text, and SlateJS calculators.
+// Applicator: how to apply commands to the data structure.
 server.apply = ArrayApplicator.ApplyCommands;
 client.apply = ArrayApplicator.ApplyCommands;
 
-// 4. Initialize synchronization
-// Client asks to observe "my-list"
+// Start observing an object.
 await client.init("my-list", true);
 
-// 5. Make changes
-// Client adds items locally
+// Issue commands locally (optimistic).
 client.command("my-list", { type: "ADD", payload: "Item 1" });
 client.command("my-list", { type: "ADD", payload: "Item 2" });
 
-console.log("Client (Temporary):", client.getObject("my-list").valueTemp); 
-// Output: ["Item 1", "Item 2"]
-console.log("Client (Current):", client.getObject("my-list").value); 
-// Output: []
+console.log("Optimistic:", client.getObject("my-list").valueTemp);
+// ["Item 1", "Item 2"]
+console.log("Authoritative (before sync):", client.getObject("my-list").value);
+// []
 
-// 6. Sync
-// Client sends changes to Server
+// Sync round-trip.
 await client.update();
-// Server processes and notifies all clients (including this one)
 server.update();
 
-console.log("Client (Final):", client.getObject("my-list").value); 
-// Output: ["Item 1", "Item 2"]
+console.log("Authoritative (after sync):", client.getObject("my-list").value);
+// ["Item 1", "Item 2"]
 ```
 
----
+## Real Transport Example (WebSocket Shape)
+
+Plug JESS into any transport by forwarding messages through `onSend`.
+
+```typescript
+import { ClientObjects, ServerObjects, TextApplicator } from "@priolo/jess";
+
+const server = new ServerObjects();
+server.apply = TextApplicator.ApplyCommands;
+
+// Pseudo-server WebSocket handler.
+ws.on("message", (payload) => server.receive(payload.toString(), ws));
+server.onSend = async (clientRef, message) => clientRef.send(JSON.stringify(message));
+
+// Pseudo-client WebSocket handler.
+const client = new ClientObjects();
+client.apply = TextApplicator.ApplyCommands;
+socket.onmessage = (evt) => client.receive(evt.data);
+client.onSend = async (messages) => socket.send(JSON.stringify(messages));
+
+await client.init("doc-1", true);
+client.command("doc-1", { type: "INSERT", index: 0, text: "Hello" });
+await client.update();
+```
 
 ## Core Concepts
 
-### ClientObjects
-The `ClientObjects` class runs on the client-side (browser or mobile). It:
--   Maintains a local copy of the shared state (`value`).
--   Calculates a temporary optimistic state (`valueTemp`) for immediate UI feedback.
--   Buffers actions and sends them to the server.
+**ClientObjects**
 
-### ServerObjects
-The `ServerObjects` class runs on the backend (Node.js). It:
--   Acts as the single source of truth.
--   Receives actions from clients, orders them, and applies them.
--   Broadcasts updates to all connected clients listening to that object.
--   Manages Garbage Collection (GC) of old actions.
+- Runs on the client (browser, mobile, or Node).
+- Holds `value` (authoritative) and `valueTemp` (optimistic).
+- Buffers commands and sends them to the server.
 
-### Applicators
-JESS separates the *synchronization logic* from the *domain logic*. An **Applicator** defines how an action changes the state.
--   `ArrayApplicator`: For lists and arrays.
--   `TextApplicator`: For collaborative text editing.
--   `SlateApplicator`: For [SlateJS](https://docs.slatejs.org/) rich text editors.
+**ServerObjects**
 
----
+- Runs on the backend.
+- Acts as the source of truth for each object.
+- Orders commands, applies them, and broadcasts updates.
+- Performs garbage collection of old history.
 
-## Architecture
+**Applicators**
 
-1.  **Action**: User performs an action (e.g., types a character).
-2.  **Optimistic UI**: Client applies the action to `valueTemp` immediately.
-3.  **Buffer**: The action is stored in an outgoing buffer.
-4.  **Sync**: `client.update()` sends buffered actions to the Server.
-5.  **Server Resolve**: Server receives actions, assigns versions, and updates its master `value`.
-6.  **Broadcast**: Server sends the accepted actions back to all clients.
-7.  **Confirm**: Client receives the server message, updates its authoritative `value`, and re-calculates `valueTemp` if there are new pending actions.
+Applicators map commands to actual state changes:
 
----
+- `ArrayApplicator` for lists and arrays.
+- `TextApplicator` for collaborative text editing.
+- `SlateApplicator` for SlateJS documents.
 
 ## Examples
 
-You can find full working examples in the `examples` directory:
+Full working examples are in `examples`:
 
--   [**WebSocket with SlateJS**](./examples/websocket_slate): A real-time rich text editor using React and SlateJS.
--   [**WebSocket Text**](./examples/websocket_text): A simple collaborative text area.
+- `examples/websocket_slate` React + SlateJS collaborative editor.
+- `examples/websocket_text` Collaborative text area.
 
-To run the SlateJS example:
+Run the SlateJS example:
 
-1.  **Server**:
-    ```bash
-    cd examples/websocket_slate/server
-    npm install
-    npm start
-    ```
-2.  **Client** (in a new terminal):
-    ```bash
-    cd examples/websocket_slate/client
-    npm install
-    npm run dev
-    ```
+1. Server
+```bash
+cd examples/websocket_slate/server
+npm install
+npm start
+```
 
----
+2. Client (new terminal)
+```bash
+cd examples/websocket_slate/client
+npm install
+npm run dev
+```
 
 ## API Reference
 
-### ClientObjects API
+**ClientObjects**
 
--   `init(idObj: string, send?: boolean)`: Start tracking an object.
--   `command(idObj: string, command: any)`: Queue a command/change.
--   `update()`: Send queued commands to the server.
--   `receive(messageStr: string)`: Process incoming messages from the server.
--   `observe(idObj: string, callback)`: Subscribe to changes.
+- `init(idObj: string, send?: boolean)` Start tracking an object.
+- `command(idObj: string, command: any)` Queue a command/change.
+- `update()` Send queued commands to the server.
+- `receive(messageStr: string)` Process incoming messages from the server.
+- `observe(idObj: string, callback)` Subscribe to changes.
 
-### ServerObjects API
+**ServerObjects**
 
--   `receive(messageStr: string, clientRef)`: Process incoming messages from a client.
--   `update()`: Broadcast pending updates to clients.
--   `gc(object)`: Clean up old history (automatically called).
-
----
+- `receive(messageStr: string, clientRef)` Process incoming messages from a client.
+- `update()` Broadcast pending updates to clients.
+- `gc(object)` Clean up old history.
 
 ## License
 

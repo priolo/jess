@@ -2,6 +2,7 @@ export { ClientObjects } from './ClientObjects.js';
 export { ServerObjects } from './ServerObjects.js';
 
 export * as ArrayApplicator from './applicators/ArrayApplicator.js';
+export * as JsonApplicator from './applicators/JsonApplicator.js';
 export * as SlateApplicator from './applicators/SlateApplicator.js';
 export * as TextApplicator from './applicators/TextApplicator.js';
 
